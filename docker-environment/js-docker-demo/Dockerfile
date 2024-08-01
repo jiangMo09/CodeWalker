@@ -1,4 +1,11 @@
-FROM node:14-alpine
+FROM node:20-alpine
+
 WORKDIR /app
-COPY app.js .
-CMD ["node", "app.js"]
+
+COPY testRunner.js .
+COPY logger.js .
+COPY main.js .
+
+ENV NODE_ENV=production
+
+CMD ["node", "main.js"]
