@@ -1,66 +1,36 @@
-import javax.tools.*;
-import java.io.*;
-import java.lang.reflect.*;
-import java.net.*;
-import java.util.*;
+import com.google.gson.Gson;
 
 public class App {
-    public static void main(String[] args) throws Exception {
-        String functionCode = System.getenv("GREET_FUNCTION");
-        if (functionCode == null || functionCode.isEmpty()) {
-            throw new IllegalArgumentException("GREET_FUNCTION environment variable is not set or is empty");
-        }
-
-        String fullClassCode = "public class DynamicGreeter { public static String greet() { " + functionCode + " } }";
-
-        // 編譯動態生成的類
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        JavaFileObject file = new JavaSourceFromString("DynamicGreeter", fullClassCode);
-        Iterable<? extends JavaFileObject> compilationUnits = Arrays.asList(file);
-        JavaCompiler.CompilationTask task = compiler.getTask(null, null, diagnostics, null, null, compilationUnits);
-
-        boolean success = task.call();
-        if (!success) {
-            for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
-                System.err.format("Error on line %d: %s%n", diagnostic.getLineNumber(), diagnostic.getMessage(null));
+    public static void main(String[] args) {
+        try {
+            String dataInput = System.getenv("DATA_INPUT");
+            if (dataInput == null) {
+                throw new RuntimeException("DATA_INPUT environment variable is not set");
             }
-            System.exit(1);
+
+            Gson gson = new Gson();
+            TestData testData = gson.fromJson(dataInput, TestData.class);
+
+            String[] inputs = testData.data_input.split("\n");
+            String[] expectedOutputs = testData.correct_answer.split("\n");
+
+            TestRunner.Stats stats = TestRunner.runTests(testData.typed_code, testData.function_name, inputs, expectedOutputs, testData.parameters_count);
+
+            for (int i = 0; i < stats.testCaseResults.length; i++) {
+                Logger.logTestCase(i + 1, stats.testCaseResults[i], new Object[]{inputs[i]}, expectedOutputs[i]);
+            }
+
+            Logger.logSummary(stats);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        // 加載並執行動態生成的類
-        URLClassLoader classLoader = URLClassLoader.newInstance(new URL[] { new File(".").toURI().toURL() });
-        Class<?> cls = Class.forName("DynamicGreeter", true, classLoader);
-        Method greetMethod = cls.getMethod("greet");
-
-        // 測量執行時間和記憶體使用
-        long startTime = System.nanoTime();
-        long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-        String result = (String) greetMethod.invoke(null);
-
-        long endTime = System.nanoTime();
-        long endMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-        double runTime = (endTime - startTime) / 1e6; // 轉換為毫秒
-        long memoryUsed = endMemory - startMemory;
-
-        System.out.println("Function result: " + result);
-        System.out.printf("Run time: %.3f ms%n", runTime);
-        System.out.printf("Memory used: %.3f KB%n", memoryUsed / 1024.0);
-    }
-}
-
-class JavaSourceFromString extends SimpleJavaFileObject {
-    final String code;
-
-    JavaSourceFromString(String name, String code) {
-        super(URI.create("string:///" + name.replace('.', '/') + Kind.SOURCE.extension), Kind.SOURCE);
-        this.code = code;
     }
 
-    @Override
-    public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-        return code;
+    static class TestData {
+        String data_input;
+        String correct_answer;
+        String function_name;
+        int parameters_count;
+        String typed_code;
     }
 }

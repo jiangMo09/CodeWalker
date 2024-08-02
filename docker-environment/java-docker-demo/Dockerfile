@@ -1,9 +1,18 @@
-FROM openjdk:11-jdk
+FROM openjdk:17-slim
+
+# 安裝必要的工具
+RUN apt-get update && apt-get install -y wget
 
 WORKDIR /app
 
-COPY App.java .
+# 下載 Gson
+RUN wget https://repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar
 
-RUN javac -cp /usr/lib/jvm/java-11-openjdk-amd64/lib/tools.jar App.java
+# 複製所有 Java 文件
+COPY *.java .
 
-CMD ["java", "-cp", ".:/usr/lib/jvm/java-11-openjdk-amd64/lib/tools.jar", "App"]
+# 編譯所有 Java 文件
+RUN javac -cp gson-2.10.1.jar *.java
+
+# 設置運行命令
+CMD ["java", "-cp", ".:gson-2.10.1.jar", "App"]

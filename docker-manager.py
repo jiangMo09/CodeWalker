@@ -14,6 +14,7 @@ def run_container(image_name, data):
     environment = {
         "js-docker": {"DATA_INPUT": json.dumps(data)},
         "python-docker": {"DATA_INPUT": json.dumps(data)},
+        "java-docker": {"DATA_INPUT": json.dumps(data)},
         # 可以為其他語言添加類似的配置
     }
 
@@ -51,6 +52,7 @@ if __name__ == "__main__":
     language_to_image = {
         "javascript": "js-docker",
         "python": "python-docker",
+        "java": "java-docker",
         # 可以為其他語言添加映射
     }
 
