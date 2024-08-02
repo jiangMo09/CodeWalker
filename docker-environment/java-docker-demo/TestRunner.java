@@ -81,7 +81,14 @@ public class TestRunner {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
 
-        String fullCode = "public class Solution { " + typedCode + " }";
+        String imports = 
+        "import java.util.*;\n" +
+        "import java.io.*;\n" +
+        "import java.math.*;\n" +
+        "import java.lang.*;\n";
+    
+        String fullCode = imports + typedCode;
+
         JavaFileObject javaFile = new SimpleJavaFileObject(URI.create("string:///Solution.java"), JavaFileObject.Kind.SOURCE) {
             @Override
             public CharSequence getCharContent(boolean ignoreEncodingErrors) {
