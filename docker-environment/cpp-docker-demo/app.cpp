@@ -1,58 +1,127 @@
 #include <iostream>
-#include <cstdlib>
-#include <lua.hpp>
-#include <chrono>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <dlfcn.h>
+#include <nlohmann/json.hpp>
+#include <filesystem>
+#include <stdexcept>
+#include <algorithm>
+#include "TestRunner.h"
+#include "Logger.h"
+
+using json = nlohmann::json;
+namespace fs = std::filesystem;
+
+class DynamicLibrary {
+public:
+    DynamicLibrary(const std::string& path) : handle(dlopen(path.c_str(), RTLD_LAZY)) {
+        if (!handle) {
+            throw std::runtime_error("Cannot load dynamic library: " + std::string(dlerror()));
+        }
+    }
+
+    void* getSymbol(const std::string& name) {
+        return dlsym(handle, name.c_str());
+    }
+
+    ~DynamicLibrary() {
+        if (handle) dlclose(handle);
+    }
+
+private:
+    void* handle;
+};
+
+json parseInputString(const std::string& input) {
+    std::istringstream iss(input);
+    std::string line;
+    json result = json::array();
+    while (std::getline(iss, line)) {
+        if (!line.empty()) {
+            try {
+                if (line.front() == '[' && line.back() == ']') {
+                    // 這是一個數組
+                    result.push_back(json::parse(line));
+                } else {
+                    // 嘗試解析為數字，如果失敗則作為字符串處理
+                    try {
+                        result.push_back(std::stoi(line));
+                    } catch (const std::invalid_argument&) {
+                        result.push_back(line);
+                    }
+                }
+            } catch (const json::exception& e) {
+                std::cerr << "JSON parsing error: " << e.what() << std::endl;
+                throw;
+            }
+        }
+    }
+    return result;
+}
+
+bool compile(const std::string& filename) {
+    // 創建一個臨時文件來包裝用戶的代碼
+    std::ofstream wrapper(filename + ".wrapper.cpp");
+    wrapper << "#include <vector>\n"
+            << "#include <unordered_map>\n"
+            << "#include <algorithm>\n"
+            << "using namespace std;\n\n"
+            << std::ifstream(filename).rdbuf();
+    wrapper.close();
+
+    std::string compileCmd = "g++ -std=c++17 -shared -fPIC -o temp_solution.so " + filename + ".wrapper.cpp";
+    return system(compileCmd.c_str()) == 0;
+}
+
+void runTests(const std::string& functionName, const json& dataInput, 
+              const json& correctAnswer, int parametersCount) {
+    DynamicLibrary lib("./temp_solution.so");
+    void* sym = lib.getSymbol(functionName);
+    if (!sym) {
+        throw std::runtime_error("Cannot find function: " + functionName);
+    }
+
+    TestRunner runner;
+    runner.runTests(dataInput, correctAnswer, sym, parametersCount, functionName);
+}
 
 int main() {
-    // 從環境變數中讀取函數定義
-    const char* greetFunctionCode = std::getenv("GREET_FUNCTION");
-    if (!greetFunctionCode) {
-        std::cerr << "GREET_FUNCTION environment variable not set." << std::endl;
+    std::string input = std::getenv("DATA_INPUT");
+    json data = json::parse(input);
+
+    std::string typedCode = data["typed_code"];
+    std::string functionName = data["function_name"];
+    json dataInput = parseInputString(data["data_input"]);
+    json correctAnswer = parseInputString(data["correct_answer"]);
+    int parametersCount = data["parameters_count"];
+
+    fs::path tempFile = fs::temp_directory_path() / "temp_solution.cpp";
+    std::ofstream file(tempFile);
+    file << "extern \"C\" {\n"
+         << typedCode
+         << "\n}\n"
+         << "extern \"C\" std::vector<int> twoSum(std::vector<int>& nums, int target) {\n"
+         << "    Solution solution;\n"
+         << "    return solution.twoSum(nums, target);\n"
+         << "}\n";
+    file.close();
+
+    if (!compile(tempFile.string())) {
+        std::cerr << "Compilation error" << std::endl;
         return 1;
     }
 
-    // 創建一個Lua狀態機
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-
-    // 評估函數定義
-    std::string script = std::string("greetFunc = ") + greetFunctionCode;
-    
-    // 測量執行時間和記憶體使用
-    auto start = std::chrono::high_resolution_clock::now();
-    size_t startMem = lua_gc(L, LUA_GCCOUNT, 0) * 1024 + lua_gc(L, LUA_GCCOUNTB, 0);
-
-    if (luaL_dostring(L, script.c_str())) {
-        std::cerr << "Error executing script: " << lua_tostring(L, -1) << std::endl;
-        lua_close(L);
+    try {
+        runTests(functionName, dataInput, correctAnswer, parametersCount);
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
 
-    // 調用函數
-    lua_getglobal(L, "greetFunc");
-    if (lua_pcall(L, 0, 1, 0)) {
-        std::cerr << "Error calling function: " << lua_tostring(L, -1) << std::endl;
-        lua_close(L);
-        return 1;
-    }
+    fs::remove(tempFile);
+    fs::remove("temp_solution.so");
 
-    auto end = std::chrono::high_resolution_clock::now();
-    size_t endMem = lua_gc(L, LUA_GCCOUNT, 0) * 1024 + lua_gc(L, LUA_GCCOUNTB, 0);
-
-    // 獲取結果
-    const char* result = lua_tostring(L, -1);
-
-    // 計算執行時間和記憶體使用
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    double runTime = duration.count() / 1000.0; // 轉換為毫秒
-    long memoryUsed = endMem - startMem;
-
-    // 輸出結果
-    std::cout << "Function result: " << result << std::endl;
-    std::printf("Run time: %.3f ms\n", runTime);
-    std::printf("Memory used: %.3f KB\n", memoryUsed / 1024.0);
-
-    // 關閉Lua狀態機
-    lua_close(L);
     return 0;
 }
