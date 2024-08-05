@@ -45,7 +45,7 @@ json parseInputString(const std::string& input) {
                     // 這是一個數組
                     result.push_back(json::parse(line));
                 } else {
-                    // 嘗試解析為數字，如果失敗則作為字符串處理
+                    // 這可能是一個數字或者字符串
                     try {
                         result.push_back(std::stoi(line));
                     } catch (const std::invalid_argument&) {
@@ -61,30 +61,43 @@ json parseInputString(const std::string& input) {
     return result;
 }
 
-bool compile(const std::string& filename) {
-    // 創建一個臨時文件來包裝用戶的代碼
+bool compile(const std::string& filename, const std::string& functionName, int parametersCount) {
     std::ofstream wrapper(filename + ".wrapper.cpp");
     wrapper << "#include <vector>\n"
+            << "#include <string>\n"
             << "#include <unordered_map>\n"
             << "#include <algorithm>\n"
+            << "#include <stack>\n"
             << "using namespace std;\n\n"
-            << std::ifstream(filename).rdbuf();
+            << std::ifstream(filename).rdbuf() << "\n"
+            << "extern \"C\" {\n";
+
+    if (parametersCount == 1) {
+        wrapper << "    auto " << functionName << "_wrapper(";
+        if (functionName == "isPalindrome") {
+            wrapper << "int x) {\n";
+        } else {
+            wrapper << "const char* s) {\n        string str(s);\n";
+        }
+        wrapper << "        Solution sol;\n"
+                << "        return sol." << functionName << "(";
+        if (functionName == "isPalindrome") {
+            wrapper << "x);\n    }\n";
+        } else {
+            wrapper << "str);\n    }\n";
+        }
+    } else if (parametersCount == 2) {
+        wrapper << "    auto " << functionName << "_wrapper(const int* nums, int numsSize, int target) {\n"
+                << "        vector<int> vec(nums, nums + numsSize);\n"
+                << "        Solution sol;\n"
+                << "        return sol." << functionName << "(vec, target);\n"
+                << "    }\n";
+    }
+    wrapper << "}\n";
     wrapper.close();
 
     std::string compileCmd = "g++ -std=c++17 -shared -fPIC -o temp_solution.so " + filename + ".wrapper.cpp";
     return system(compileCmd.c_str()) == 0;
-}
-
-void runTests(const std::string& functionName, const json& dataInput, 
-              const json& correctAnswer, int parametersCount) {
-    DynamicLibrary lib("./temp_solution.so");
-    void* sym = lib.getSymbol(functionName);
-    if (!sym) {
-        throw std::runtime_error("Cannot find function: " + functionName);
-    }
-
-    TestRunner runner;
-    runner.runTests(dataInput, correctAnswer, sym, parametersCount, functionName);
 }
 
 int main() {
@@ -99,22 +112,17 @@ int main() {
 
     fs::path tempFile = fs::temp_directory_path() / "temp_solution.cpp";
     std::ofstream file(tempFile);
-    file << "extern \"C\" {\n"
-         << typedCode
-         << "\n}\n"
-         << "extern \"C\" std::vector<int> twoSum(std::vector<int>& nums, int target) {\n"
-         << "    Solution solution;\n"
-         << "    return solution.twoSum(nums, target);\n"
-         << "}\n";
+    file << typedCode;
     file.close();
 
-    if (!compile(tempFile.string())) {
+    if (!compile(tempFile.string(), functionName, parametersCount)) {
         std::cerr << "Compilation error" << std::endl;
         return 1;
     }
 
     try {
-        runTests(functionName, dataInput, correctAnswer, parametersCount);
+        TestRunner runner;
+        runner.runTests(dataInput, correctAnswer, functionName, parametersCount);
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
