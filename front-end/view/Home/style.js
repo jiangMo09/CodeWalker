@@ -1,14 +1,15 @@
 import { css } from "styled-components";
+
 const style = css`
   background-color: #24262e;
   color: white;
-  height: 100vh;
+  min-height: 100vh;
   font-size: 16px;
 
   .website-name {
     text-align: center;
     font-size: 48px;
-    font-size: 900;
+    font-weight: 900;
     padding-top: 20px;
   }
 
@@ -20,7 +21,7 @@ const style = css`
   .description {
     text-align: center;
     font-size: 24px;
-    font-size: 700;
+    font-weight: 700;
   }
 
   .features {
@@ -34,7 +35,7 @@ const style = css`
     .title {
       font-size: 24px;
       text-align: center;
-      font-size: 700;
+      font-weight: 700;
     }
 
     .feature-description {
@@ -56,10 +57,134 @@ const style = css`
       padding: 10px;
       border-radius: 5px;
       transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+
+      &:hover {
+        box-shadow: 0 0 10px 2px rgba(0, 255, 0, 0.8);
+      }
     }
 
-    .entry:hover {
-      box-shadow: 0 0 10px 2px rgba(0, 255, 0, 0.8);
+    .tabs {
+      display: flex;
+      margin-top: 20px;
+
+      button {
+        background-color: transparent;
+        border: none;
+        color: #9ca1b2;
+        padding: 10px 20px;
+        margin: 0;
+
+        cursor: pointer;
+        transition: background-color 0.3s, color 0.3s;
+        font-size: 16px;
+        border-radius: 8px 8px 0 0;
+        position: relative;
+
+        &.active {
+          background-color: #24262e;
+          color: white;
+
+          &::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: rgba(0, 255, 0, 0.8);
+          }
+        }
+
+        &:hover:not(.active) {
+          background-color: #3a3d4a;
+          color: white;
+        }
+      }
+    }
+
+    .tab-content {
+      background-color: #24262e;
+      border-radius: 0 0 8px 8px;
+      position: relative;
+
+      ul {
+        max-height: 320px;
+        overflow-y: auto;
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      li {
+        margin-bottom: 10px;
+        padding: 6px;
+        background-color: #2d2f39;
+        border-radius: 4px;
+
+        a {
+          display: block;
+          padding: 10px;
+          background-color: #2d2f39;
+          border-radius: 4px;
+          color: white;
+          text-decoration: none;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background-color: #3a3d4a;
+            transform: translateX(5px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+          }
+        }
+      }
+    }
+
+    .ranking-list {
+      list-style-type: none;
+      padding: 0;
+
+      li {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        margin-bottom: 10px;
+        background-color: #2d2f39;
+        border-radius: 4px;
+
+        .rank {
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          margin-right: 10px;
+          font-weight: bold;
+        }
+
+        .username {
+          flex-grow: 1;
+        }
+
+        .score {
+          font-weight: bold;
+        }
+
+        &.top-1 .rank {
+          background-color: gold;
+          color: #24262e;
+        }
+
+        &.top-2 .rank {
+          background-color: silver;
+          color: #24262e;
+        }
+
+        &.top-3 .rank {
+          background-color: #cd7f32;
+          color: #24262e;
+        }
+      }
     }
   }
 `;
