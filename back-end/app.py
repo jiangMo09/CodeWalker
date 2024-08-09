@@ -1,10 +1,14 @@
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
+from routers import api_router
+
 from utils.mysql import get_db_connection, execute_query
 
 
 app = FastAPI()
+
+app.include_router(api_router)
 
 
 @app.get("/api/questions_list")
