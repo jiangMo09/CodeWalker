@@ -1,8 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel
+from typing import Optional, List
+
 from utils.mysql import get_db, execute_query
-from utils.models import Response, Question
+from utils.models import Response
 
 router = APIRouter()
+
+
+class Question(BaseModel):
+    id: int
+    pretty_name: str
+    description: Optional[str] = None
 
 
 @router.get("/question_description", response_model=Response)
@@ -19,10 +28,10 @@ async def get_question_description(
             )
         question_data = Question(
             id=result["id"],
-            name=result["pretty_name"],
+            pretty_name=result["pretty_name"],
             description=result["description"],
         )
-        return Response(data={"questions": [question_data]})
+        return Response(data=question_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
