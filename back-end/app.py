@@ -13,7 +13,7 @@ app.include_router(api_router)
 
 class Question(BaseModel):
     id: int
-    name: str
+    pretty_name: str
 
 
 class QuestionsList(BaseModel):
@@ -26,7 +26,7 @@ async def get_questions_list(db=Depends(get_db)):
         query = "SELECT id, pretty_name FROM questions"
         result = execute_query(db, query, fetch_method="fetchall")
         questions_list = [
-            Question(id=row["id"], name=row["pretty_name"]) for row in result
+            Question(id=row["id"], pretty_name=row["pretty_name"]) for row in result
         ]
         return Response(data=QuestionsList(questions=questions_list))
     except Exception as e:
