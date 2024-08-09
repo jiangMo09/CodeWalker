@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import List
 
 from utils.mysql import get_db, execute_query
-from utils.models import Response
 from routers import api_router
 
 app = FastAPI()
@@ -18,6 +17,10 @@ class Question(BaseModel):
 
 class QuestionsList(BaseModel):
     questions: List[Question]
+
+
+class Response(BaseModel):
+    data: QuestionsList
 
 
 @app.get("/api/questions_list", response_model=Response)

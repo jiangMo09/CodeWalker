@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 from utils.mysql import get_db, execute_query
-from utils.models import Response
 
 router = APIRouter()
 
@@ -12,6 +11,10 @@ class Question(BaseModel):
     id: int
     pretty_name: str
     description: Optional[str] = None
+
+
+class Response(BaseModel):
+    data: Question
 
 
 @router.get("/question_description", response_model=Response)
