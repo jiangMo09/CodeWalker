@@ -1,7 +1,6 @@
 import mysql.connector
 from utils.load_env import HOST, USER, PASSWORD, NAME
 
-
 dbconfig = {
     "host": HOST,
     "user": USER,
@@ -33,3 +32,11 @@ def execute_query(connection, query, values=None, fetch_method="fetchone"):
             connection.commit()
 
     return result
+
+
+def get_db():
+    connection = get_db_connection()
+    try:
+        yield connection
+    finally:
+        connection.close()

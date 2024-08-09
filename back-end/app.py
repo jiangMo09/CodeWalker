@@ -1,38 +1,26 @@
-from fastapi import FastAPI, status
-from fastapi.responses import JSONResponse
-
+from fastapi import FastAPI, Depends, HTTPException, status
+from utils.mysql import get_db, execute_query
+from utils.models import Question, Response
 from routers import api_router
-
-from utils.mysql import get_db_connection, execute_query
-
 
 app = FastAPI()
 
 app.include_router(api_router)
 
 
-@app.get("/api/questions_list")
-async def get_questions_list():
-    connection = None
+@app.get("/api/questions_list", response_model=Response)
+async def get_questions_list(db=Depends(get_db)):
     try:
-        connection = get_db_connection()
         query = "SELECT id, pretty_name FROM questions"
-        result = execute_query(connection, query, None, fetch_method="fetchall")
-
+        result = execute_query(db, query, fetch_method="fetchall")
         questions_list = [
-            {"id": row["id"], "name": row["pretty_name"]} for row in result
+            Question(id=row["id"], name=row["pretty_name"]) for row in result
         ]
-
-        response_data = {"data": {"questions": questions_list}}
-
-        return JSONResponse(status_code=status.HTTP_200_OK, content=response_data)
+        return Response(data={"questions": questions_list})
     except Exception as e:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"error": str(e)}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
-    finally:
-        if connection:
-            connection.close()
 
 
 @app.get("/api/ranking")
