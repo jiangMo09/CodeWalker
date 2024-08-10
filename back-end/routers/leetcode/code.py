@@ -20,11 +20,11 @@ class Languages(BaseModel):
 
 
 class CodeResponse(BaseModel):
-    data: CodeSnippet
+    data: Dict[str, List[CodeSnippet]]
 
 
 class LanguagesResponse(BaseModel):
-    data: Languages
+    data: List[Languages]
 
 
 @router.get("/question_code", response_model=CodeResponse)
@@ -79,9 +79,7 @@ async def get_language_list(db=Depends(get_db)):
             for row in result
         ]
 
-        return LanguagesResponse(
-            data={"language_list": [lang.dict() for lang in language_list]}
-        )
+        return LanguagesResponse(data=language_list)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
