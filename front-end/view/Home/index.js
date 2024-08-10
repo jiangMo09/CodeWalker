@@ -1,26 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
+import { getQuestionsList } from "../../services/api/Home";
 
 import style from "./style";
 
 const Home = ({ className }) => {
   const [activeTab, setActiveTab] = useState("questions");
+  const [questions, setQuestions] = useState([]);
 
-  const questions = [
-    { id: 1, name: "Reverse String", link: "/questions/reverse-string" },
-    {
-      id: 2,
-      name: "Fibonacci Sequence",
-      link: "/questions/fibonacci-sequence"
-    },
-    { id: 3, name: "Binary Search", link: "/questions/binary-search" },
-    {
-      id: 4,
-      name: "Merge Two Sorted Arrays",
-      link: "/questions/merge-sorted-arrays"
-    },
-    { id: 5, name: "Palindrome Number", link: "/questions/palindrome-number" }
-  ];
+  useEffect(() => {
+    const getQuestions = async () => {
+      try {
+        const data = await getQuestionsList();
+        if (data && data.data && data.data.questions) {
+          setQuestions(data.data.questions);
+        }
+      } catch (error) {
+        console.error("Failed to fetch questions:", error);
+      }
+    };
+
+    getQuestions();
+  }, []);
 
   const rankings = [
     { username: "JohnDoe", score: 950 },
@@ -44,7 +45,7 @@ const Home = ({ className }) => {
         </div>
         <div className="features">
           <div className="feature">
-            <div className="title">deployment partner</div>
+            <div className="title">Deployment Partner</div>
             <div className="feature-description">
               <ul>
                 <li>
@@ -56,7 +57,7 @@ const Home = ({ className }) => {
             <div className="entry">go to deploying</div>
           </div>
           <div className="feature">
-            <div className="title">coding coach</div>
+            <div className="title">Coding Coach</div>
             <div className="coach-container">
               <div className="tabs">
                 <button
@@ -77,8 +78,8 @@ const Home = ({ className }) => {
                   <ul>
                     {questions.map((q) => (
                       <li key={q.id}>
-                        <a href={q.link}>
-                          {q.id}. {q.name}
+                        <a href={`/question/${q.kebab_case_name}`}>
+                          {q.id}. {q.pretty_name}
                         </a>
                       </li>
                     ))}
