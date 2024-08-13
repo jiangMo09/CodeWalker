@@ -12,12 +12,8 @@ const Home = ({ className }) => {
     const getQuestions = async () => {
       try {
         const questionsList = await getQuestionsList();
-        if (
-          questionsList &&
-          questionsList.data &&
-          questionsList.data.questions
-        ) {
-          setQuestions(questionsList.data.questions);
+        if (questionsList && questionsList.questions) {
+          setQuestions(questionsList.questions);
         }
       } catch (error) {
         console.error("Failed to fetch questions:", error);

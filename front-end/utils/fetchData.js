@@ -13,7 +13,7 @@ export const fetchData = async (endpoint, options = {}) => {
     });
 
     const data = await response.json();
-    return data;
+    return data.data;
   } catch (err) {
     console.error(`Error fetching ${endpoint}:`, err);
     throw new Error("An error occurred while fetching data");
