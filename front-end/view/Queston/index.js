@@ -5,8 +5,11 @@ import {
   getQuestionDescription,
   getQuestionsDataInput
 } from "../../services/api/Question";
+import styled from "styled-components";
 
-const Question = ({ questionName }) => {
+import style from "./style";
+
+const Question = ({ className, questionName }) => {
   const [description, setDescription] = useState("");
   const [languages, setLanguages] = useState([]);
   const [code, setCode] = useState("");
@@ -35,7 +38,17 @@ const Question = ({ questionName }) => {
     fetchQuestionData();
   }, [questionName]);
 
-  return <div>Question</div>;
+  return (
+    <div className={className}>
+      <div className="description">Description</div>
+      <div className="right-part">
+        <div className="typed-code">typed-code</div>
+        <div className="test-case">test-case</div>
+      </div>
+    </div>
+  );
 };
 
-export default Question;
+export default styled(Question)`
+  ${style}
+`;
