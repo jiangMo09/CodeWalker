@@ -11,9 +11,13 @@ const Home = ({ className }) => {
   useEffect(() => {
     const getQuestions = async () => {
       try {
-        const data = await getQuestionsList();
-        if (data && data.data && data.data.questions) {
-          setQuestions(data.data.questions);
+        const questionsList = await getQuestionsList();
+        if (
+          questionsList &&
+          questionsList.data &&
+          questionsList.data.questions
+        ) {
+          setQuestions(questionsList.data.questions);
         }
       } catch (error) {
         console.error("Failed to fetch questions:", error);
