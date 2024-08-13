@@ -10,3 +10,20 @@ export const getQuestionsDataInput = ({ kebabCaseName }) =>
   fetchData(`/api/question_data_input?name=${kebabCaseName}`);
 
 export const getLanguagesList = () => fetchData(`/api/languages_list`);
+
+export const postTypedCode = ({
+  submit,
+  questionId,
+  selectedLanguage,
+  userCode
+}) =>
+  fetchData(`/api/question_code`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      submit: submit,
+      question_id: questionId,
+      lang: selectedLanguage,
+      typed_code: userCode
+    })
+  });

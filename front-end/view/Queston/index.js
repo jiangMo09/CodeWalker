@@ -27,7 +27,11 @@ const Question = ({ className, questionName }) => {
 
   return (
     <div className={className}>
-      <Header />
+      <Header
+        questionId={description.id}
+        selectedLanguage={selectedLanguage}
+        userCode={userCode}
+      />
       <div className="main">
         <Description description={description.description} title={title} />
         <div className="right-part">
