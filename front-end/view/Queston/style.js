@@ -107,10 +107,11 @@ const style = css`
   .test-case-tabs button {
     padding: 8px 16px;
     border: none;
-    background-color: #f0f0f0;
+
     cursor: pointer;
     font-size: 14px;
     margin-right: 5px;
+    border-radius: 4px;
   }
 
   .test-case-tabs button.active {
@@ -118,13 +119,28 @@ const style = css`
     font-weight: bold;
   }
 
-  .test-case pre {
-    padding: 15px;
+  .test-case-content {
     border-radius: 4px;
-    border: 1px solid #e8e8e8;
+    padding: 15px;
+  }
+
+  .param-row {
+    margin-bottom: 10px;
+  }
+
+  .param-name {
+    font-weight: bold;
+    margin-right: 10px;
+  }
+
+  .param-value {
+    background-color: #ffffff;
+    color: black;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 5px 10px;
     font-family: Consolas, "Courier New", monospace;
-    font-size: 14px;
-    line-height: 1.5;
+    display: inline-block;
   }
 `;
 

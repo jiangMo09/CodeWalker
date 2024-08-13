@@ -17,6 +17,7 @@ const Question = ({ className, questionName }) => {
   const [loading, setLoading] = useState(true);
   const [selectedTestCase, setSelectedTestCase] = useState(0);
   const [userCode, setUserCode] = useState("");
+  const [metaData, setMetaData] = useState(null);
 
   useEffect(() => {
     if (!questionName) {
@@ -41,6 +42,7 @@ const Question = ({ className, questionName }) => {
         setLanguages(languagesList.data);
         setCodeSnippets(prototypeCode.data.code_snippets);
         setDataInput(testCases.data);
+        setMetaData(JSON.parse(testCases.data.meta_data));
 
         if (languagesList.data.length > 0) {
           setSelectedLanguage(languagesList.data[0].name);
@@ -74,6 +76,46 @@ const Question = ({ className, questionName }) => {
     console.log("Submitting code:", userCode);
   };
 
+  const renderTestCase = () => {
+    if (!dataInput?.example_testcase_List?.[0] || !metaData) {
+      return null;
+    }
+
+    const testCases = dataInput.example_testcase_List[0].split("\n");
+    const paramCount = metaData.params.length;
+
+    return (
+      <div className="test-case">
+        <div className="test-case-tabs">
+          {testCases.map(
+            (_, index) =>
+              index % paramCount === 0 && (
+                <button
+                  key={index}
+                  className={
+                    selectedTestCase === index / paramCount ? "active" : ""
+                  }
+                  onClick={() => setSelectedTestCase(index / paramCount)}
+                >
+                  Case {index / paramCount + 1}
+                </button>
+              )
+          )}
+        </div>
+        <div className="test-case-content">
+          {metaData.params.map((param, index) => (
+            <div key={param.name} className="param-row">
+              <span className="param-name">{param.name} =</span>
+              <div className="param-value">
+                {testCases[selectedTestCase * paramCount + index]}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return <div className={className}>Loading...</div>;
   }
@@ -103,32 +145,7 @@ const Question = ({ className, questionName }) => {
           />
           <button onClick={handleSubmit}>Submit</button>
         </div>
-        <div className="test-case">
-          <div className="test-case-tabs">
-            {dataInput?.example_testcase_List?.[0]
-              ?.split("\n")
-              ?.map((_, index, array) => {
-                if (index % 3 === 0) {
-                  return (
-                    <button
-                      key={index}
-                      className={selectedTestCase === index / 3 ? "active" : ""}
-                      onClick={() => setSelectedTestCase(index / 3)}
-                    >
-                      Test Case {index / 3 + 1}
-                    </button>
-                  );
-                }
-                return null;
-              })}
-          </div>
-          <pre>
-            {dataInput?.example_testcase_List?.[0]
-              ?.split("\n")
-              ?.slice(selectedTestCase * 3, selectedTestCase * 3 + 3)
-              .join("\n")}
-          </pre>
-        </div>
+        {renderTestCase()}
       </div>
     </div>
   );
