@@ -5,7 +5,10 @@ import {
   getQuestionDescription,
   getQuestionsDataInput
 } from "../../services/api/Question";
+
+import Editor from "@monaco-editor/react";
 import styled from "styled-components";
+
 import style from "./style";
 
 const Question = ({ className, questionName }) => {
@@ -18,6 +21,7 @@ const Question = ({ className, questionName }) => {
   const [selectedTestCase, setSelectedTestCase] = useState(0);
   const [userCode, setUserCode] = useState("");
   const [metaData, setMetaData] = useState(null);
+  const [editorLanguage, setEditorLanguage] = useState("cpp");
 
   useEffect(() => {
     if (!questionName) {
@@ -61,20 +65,44 @@ const Question = ({ className, questionName }) => {
     setUserCode(getCodeForLanguage());
   }, [selectedLanguage]);
 
+  useEffect(() => {
+    setUserCode(getCodeForLanguage());
+    setEditorLanguage(getMonacoLanguage(selectedLanguage));
+  }, [selectedLanguage]);
+
   const getCodeForLanguage = () => {
     return (
       codeSnippets.find((c) => c.langSlug === selectedLanguage)?.code || ""
     );
   };
 
+  const getMonacoLanguage = (lang) => {
+    switch (lang) {
+      case "java":
+        return "java";
+      case "cpp":
+        return "cpp";
+      case "javascript":
+        return "javascript";
+      case "python3":
+        return "python";
+      default:
+        return "javascript";
+    }
+  };
+
+  const handleEditorChange = (value) => {
+    setUserCode(value);
+  };
+
   const handleCodeChange = (event) => {
     setUserCode(event.target.value);
   };
 
-  const handleSubmit = () => {
-    // 這裡之後會處理提交代碼到後端的邏輯
-    console.log("Submitting code:", userCode);
-  };
+  // const handleSubmit = () => {
+  //   // 這裡之後會處理提交代碼到後端的邏輯
+  //   console.log("Submitting code:", userCode);
+  // };
 
   const renderTestCase = () => {
     if (!dataInput?.example_testcase_List?.[0] || !metaData) {
@@ -138,12 +166,22 @@ const Question = ({ className, questionName }) => {
               </option>
             ))}
           </select>
-          <textarea
+          <Editor
+            height="55vh"
+            language={editorLanguage}
             value={userCode}
-            onChange={handleCodeChange}
-            spellCheck="false"
+            onChange={handleEditorChange}
+            options={{
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              fontSize: 14,
+              wordWrap: "on",
+              automaticLayout: true,
+              formatOnPaste: true,
+              formatOnType: true,
+            }}
           />
-          <button onClick={handleSubmit}>Submit</button>
+          {/* <button onClick={handleSubmit}>Submit</button> */}
         </div>
         {renderTestCase()}
       </div>

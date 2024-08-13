@@ -41,7 +41,7 @@ const style = css`
   }
 
   .right-part {
-    flex: 1.2;
+    flex: 1.25;
     display: flex;
     flex-direction: column;
     border-left: 1px solid #e8e8e8;
@@ -65,16 +65,13 @@ const style = css`
     font-size: 14px;
   }
 
-  .typed-code textarea {
-    flex: 1;
-    padding: 15px;
-    border-radius: 4px;
-    border: 1px solid #e8e8e8;
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    margin-bottom: 15px;
-  }
+  .typed-code .monaco-editor {
+  flex: 1;
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+  margin-bottom: 15px;
+}
+
 
   .typed-code button {
     align-self: flex-start;
