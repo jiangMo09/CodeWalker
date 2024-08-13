@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel
-from typing import List, Optional
-import json
-
+from pydantic import BaseModel, Field
+from typing import List
 from utils.mysql import get_db, execute_query
 
 router = APIRouter()
@@ -10,8 +8,7 @@ router = APIRouter()
 
 class QuestionDataInput(BaseModel):
     id: str
-    title: str
-    example_testcase_List: List[str]
+    example_testcase_list: List[str] = Field(..., alias="example_testcase_List")
     meta_data: str
 
 
@@ -26,10 +23,11 @@ async def get_question_data_input(
 ):
     try:
         query = """
-        SELECT id, pretty_name, 
-               (SELECT meta_data FROM questions_test_cases WHERE question_id = questions.id LIMIT 1) as meta_data
-        FROM questions 
-        WHERE kebab_case_name = %s
+        SELECT q.id, qtc.meta_data
+        FROM questions q
+        LEFT JOIN questions_test_cases qtc ON q.id = qtc.question_id
+        WHERE q.kebab_case_name = %s
+        LIMIT 1
         """
         result = execute_query(db, query, (name,), fetch_method="fetchone")
 
@@ -39,7 +37,7 @@ async def get_question_data_input(
             )
 
         query_test_cases = """
-        SELECT data_input_run, correct_answer_run 
+        SELECT data_input_run
         FROM questions_test_cases 
         WHERE question_id = %s 
         """
@@ -47,16 +45,12 @@ async def get_question_data_input(
             db, query_test_cases, (result["id"],), fetch_method="fetchall"
         )
 
-        example_testcase_List = [
-            f"{case['data_input_run']}\n{case['correct_answer_run']}"
-            for case in test_cases
-        ]
+        example_testcase_list = [case["data_input_run"] for case in test_cases]
 
         question_data = QuestionDataInput(
             id=str(result["id"]),
-            title=result["pretty_name"],
-            example_testcase_List=example_testcase_List,
-            meta_data=result["meta_data"],
+            example_testcase_List=example_testcase_list,
+            meta_data=result["meta_data"] or "",
         )
 
         return DataInputResponse(data=question_data)
