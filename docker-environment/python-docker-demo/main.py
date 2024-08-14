@@ -1,48 +1,37 @@
-import os
 import json
-import sys
+import os
 from test_runner import create_user_function, run_tests
-from logger import log_test_case, log_summary, log_error
+from logger import log_test_case, log_summary
 
 
 def run_code(data):
-    try:
-        typed_code = data.get("typed_code", "")
-        function_name = data.get("function_name", "")
-        data_input = data.get("data_input", "")
-        correct_answer = data.get("correct_answer", "")
-        parameters_count = data.get("parameters_count", 1)
+    data_dict = json.loads(data)
+    typed_code = data_dict["typed_code"]
+    data_input = data_dict["data_input"]
+    correct_answer = data_dict["correct_answer"]
+    function_name = data_dict["function_name"]
+    parameters_count = data_dict["parameters_count"]
 
-        user_function = create_user_function(typed_code, function_name)
+    user_function = create_user_function(typed_code, function_name)
+    inputs = [json.loads(line) for line in data_input.split("\n")]
+    expected_outputs = [json.loads(line) for line in correct_answer.split("\n")]
 
-        input_lines = data_input.split("\n")
-        inputs = []
-        for i in range(0, len(input_lines), parameters_count):
-            test_case_inputs = [
-                json.loads(input_lines[i + j]) for j in range(parameters_count)
-            ]
-            inputs.append(test_case_inputs)
-        expected_outputs = [json.loads(x) for x in correct_answer.split("\n")]
+    stats = run_tests(user_function, inputs, expected_outputs, parameters_count)
 
-        stats = run_tests(user_function, inputs, expected_outputs)
+    for index, test_case_stats in enumerate(stats["test_case_results"]):
+        log_test_case(
+            index + 1,
+            test_case_stats,
+            inputs[index * parameters_count : (index + 1) * parameters_count],
+            expected_outputs[index],
+        )
 
-        for i, test_case_stats in enumerate(stats["test_case_results"]):
-            log_test_case(i + 1, test_case_stats, inputs[i], expected_outputs[i])
-
-        log_summary(stats)
-    except Exception as e:
-        log_error(str(e))
+    log_summary(stats)
 
 
 if __name__ == "__main__":
+    data_input = os.environ.get("DATA_INPUT")
     try:
-        data_input = os.environ.get("DATA_INPUT")
-        if not data_input:
-            raise ValueError("DATA_INPUT environment variable is not set")
-
-        data = json.loads(data_input)
-        run_code(data)
-    except json.JSONDecodeError as e:
-        log_error(f"Invalid JSON in DATA_INPUT: {str(e)}")
-    except Exception as e:
-        log_error(str(e))
+        run_code(data_input)
+    except Exception as error:
+        print(f"Error: {str(error)}")
