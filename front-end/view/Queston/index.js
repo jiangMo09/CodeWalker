@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styled from "styled-components";
 import { useQuestionData } from "./hooks/useQuestionData";
 import { useCodeEditor } from "./hooks/useCodeEditor";
@@ -9,6 +10,7 @@ import style from "./style";
 
 const Question = ({ className, questionName }) => {
   const { description, dataInput, loading } = useQuestionData(questionName);
+  const [testResults, setTestResults] = useState(null);
 
   const {
     languages,
@@ -31,6 +33,7 @@ const Question = ({ className, questionName }) => {
         questionId={description.id}
         selectedLanguage={selectedLanguage}
         userCode={userCode}
+        setTestResults={setTestResults}
       />
       <div className="main">
         <Description description={description.description} title={title} />
@@ -43,7 +46,7 @@ const Question = ({ className, questionName }) => {
             handleEditorChange={handleEditorChange}
             editorLanguage={editorLanguage}
           />
-          <TestCase dataInput={dataInput} />
+          <TestCase dataInput={dataInput} testResults={testResults} />
         </div>
       </div>
     </div>

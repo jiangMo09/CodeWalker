@@ -27,6 +27,11 @@ const style = css`
     cursor: pointer;
   }
 
+  .button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .submit {
     border: 1px solid rgba(0, 255, 0, 0.8);
     color: rgba(0, 255, 0, 0.8);

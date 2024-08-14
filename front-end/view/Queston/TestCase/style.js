@@ -7,7 +7,7 @@ const style = css`
   border-top: 1px solid #e8e8e8;
   overflow-y: auto;
   min-height: 150px;
-  
+
   &::-webkit-scrollbar {
     width: 8px;
   }
@@ -30,6 +30,7 @@ const style = css`
     margin-bottom: 15px;
 
     button {
+      position: relative;
       padding: 8px 16px;
       border: none;
       cursor: pointer;
@@ -40,6 +41,28 @@ const style = css`
       &.active {
         background-color: #e0e0e0;
         font-weight: bold;
+      }
+
+      .status-dot {
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+      }
+
+      &.passed .status-dot {
+        background-color: #4caf50;
+      }
+
+      &.failed .status-dot {
+        background-color: #f44336;
+      }
+
+      &.pending .status-dot {
+        display: none;
       }
     }
   }
@@ -66,6 +89,16 @@ const style = css`
     padding: 5px 10px;
     font-family: Consolas, "Courier New", monospace;
     display: inline-block;
+  }
+
+  .error-message {
+    color: #f44336;
+    background-color: #ffebee;
+    border: 1px solid #f44336;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 10px;
+    font-family: Consolas, "Courier New", monospace;
   }
 `;
 
