@@ -1,6 +1,7 @@
 import time
 import psutil
 import ast
+from typing import List, Dict, Tuple, Any
 
 
 def safe_eval(expr):
@@ -15,11 +16,20 @@ def safe_eval(expr):
 
 
 def create_user_function(code, function_name):
+    setup_code = """
+from typing import List, Dict, Tuple, Any
+"""
+    full_code = setup_code + "\n" + code
+
     local_vars = {}
-    exec(code, globals(), local_vars)
-    if function_name not in local_vars:
-        raise ValueError(f"Function '{function_name}' not found")
-    return local_vars[function_name]
+    exec(full_code, globals(), local_vars)
+    if "Solution" in local_vars:
+        solution = local_vars["Solution"]()
+        if hasattr(solution, function_name):
+            return getattr(solution, function_name)
+    elif function_name in local_vars:
+        return local_vars[function_name]
+    raise ValueError(f"Function '{function_name}' not found")
 
 
 def execute_test_case(user_function, inputs):
@@ -40,7 +50,7 @@ def execute_test_case(user_function, inputs):
     return {"result": result, "run_time": run_time, "memory_used": memory_used}
 
 
-def run_tests(user_function, inputs, expected_outputs, parameters_count):
+def run_tests(user_function, inputs, expected_outputs):
     stats = {
         "all_tests_passed": True,
         "total_run_time": 0,
@@ -48,11 +58,10 @@ def run_tests(user_function, inputs, expected_outputs, parameters_count):
         "test_case_results": [],
     }
 
-    for i in range(0, len(inputs), parameters_count):
-        test_inputs = inputs[i : i + parameters_count]
+    for test_inputs, expected_output in zip(inputs, expected_outputs):
         test_case_stats = execute_test_case(user_function, test_inputs)
 
-        passed = test_case_stats["result"] == expected_outputs[i // parameters_count]
+        passed = test_case_stats["result"] == expected_output
         stats["all_tests_passed"] &= passed
         stats["total_run_time"] += test_case_stats["run_time"]
         stats["total_memory_used"] += test_case_stats["memory_used"]
@@ -61,7 +70,7 @@ def run_tests(user_function, inputs, expected_outputs, parameters_count):
             {
                 "passed": passed,
                 "inputs": test_inputs,
-                "expected": expected_outputs[i // parameters_count],
+                "expected": expected_output,
                 "result": test_case_stats["result"],
                 "run_time": test_case_stats["run_time"],
                 "memory_used": test_case_stats["memory_used"],
