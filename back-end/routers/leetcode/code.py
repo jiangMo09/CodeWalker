@@ -1,7 +1,9 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from typing import List, Dict
 
+from .docker_manager import run_container
 from utils.mysql import get_db, execute_query
 
 router = APIRouter()
@@ -25,6 +27,13 @@ class CodeResponse(BaseModel):
 
 class LanguagesResponse(BaseModel):
     data: List[Languages]
+
+
+class CodeTyped(BaseModel):
+    lang: str
+    question_id: int
+    submit: bool
+    typed_code: str
 
 
 @router.get("/question_code", response_model=CodeResponse)
@@ -80,6 +89,69 @@ async def get_language_list(db=Depends(get_db)):
         ]
 
         return LanguagesResponse(data=language_list)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+async def execute_code(data):
+    language = data.get("lang", "")
+
+    language_to_image = {
+        "javascript": "js-docker",
+        "python": "python-docker",
+        "java": "java-docker",
+        "cpp": "cpp-docker",
+    }
+
+    if language not in language_to_image:
+        raise ValueError(f"不支援的語言: {language}")
+
+    image_name = language_to_image[language]
+    result = await run_container(image_name, data)
+    return result
+
+
+@router.post("/question_code")
+async def post_question_code(typed_code: CodeTyped, db=Depends(get_db)):
+    try:
+        question_query = (
+            "SELECT id, camel_case_name, parameters_count FROM questions WHERE id = %s"
+        )
+        question_result = execute_query(
+            db, question_query, (typed_code.question_id,), fetch_method="fetchone"
+        )
+        if not question_result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Question not found"
+            )
+
+        submit_status = "submit" if typed_code.submit else "run"
+        test_cases_query = f"SELECT data_input_{submit_status}, correct_answer_{submit_status} FROM questions_test_cases WHERE question_id = %s"
+        test_cases_result = execute_query(
+            db, test_cases_query, (typed_code.question_id,), fetch_method="fetchone"
+        )
+        print("test_cases_result", test_cases_result)
+
+
+        if not test_cases_result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Test cases not found"
+            )
+
+        docker_input = {
+            "data_input": test_cases_result[f"data_input_{submit_status}"],
+            "correct_answer": test_cases_result[f"correct_answer_{submit_status}"],
+            "lang": typed_code.lang,
+            "question_id": str(typed_code.question_id),
+            "function_name": question_result["camel_case_name"],
+            "typed_code": typed_code.typed_code,
+            "parameters_count": question_result["parameters_count"],
+        }
+        result = await execute_code(docker_input)
+        return {"data": result}
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
