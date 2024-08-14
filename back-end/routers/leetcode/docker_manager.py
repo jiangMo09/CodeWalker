@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     language_to_image = {
         "javascript": "js-docker",
-        "python": "python-docker",
+        "python3": "python-docker",
         "java": "java-docker",
         "cpp": "cpp-docker",
     }

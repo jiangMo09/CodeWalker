@@ -100,7 +100,7 @@ async def execute_code(data):
 
     language_to_image = {
         "javascript": "js-docker",
-        "python": "python-docker",
+        "python3": "python-docker",
         "java": "java-docker",
         "cpp": "cpp-docker",
     }
@@ -132,8 +132,6 @@ async def post_question_code(typed_code: CodeTyped, db=Depends(get_db)):
         test_cases_result = execute_query(
             db, test_cases_query, (typed_code.question_id,), fetch_method="fetchone"
         )
-        print("test_cases_result", test_cases_result)
-
 
         if not test_cases_result:
             raise HTTPException(
