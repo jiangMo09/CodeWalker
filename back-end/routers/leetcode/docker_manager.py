@@ -4,6 +4,8 @@ import json
 import time
 from utils.load_env import ENVIRONMENT, ECR_REGISTRY
 
+print("ENVIRONMENT", ENVIRONMENT)
+
 client = docker.from_env()
 
 
