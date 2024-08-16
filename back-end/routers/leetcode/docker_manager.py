@@ -2,6 +2,7 @@ import docker
 import sys
 import json
 import time
+from utils.load_env import ENVIRONMENT, ECR_REGISTRY
 
 client = docker.from_env()
 
@@ -18,10 +19,19 @@ async def run_container(image_name, data):
         "cpp-docker": {"DATA_INPUT": json.dumps(data)},
     }
 
+    if ENVIRONMENT == "production":
+        full_image_name = f"{ECR_REGISTRY}/codewalker:{image_name}"
+    else:
+        full_image_name = image_name
+
     try:
         start = measure_resources()
+
+        if ENVIRONMENT == "production":
+            login_to_ecr()
+
         container = client.containers.run(
-            image_name, environment=environment[image_name], detach=True
+            full_image_name, environment=environment[image_name], detach=True
         )
         timeout = 15
         container.wait(timeout=timeout)
@@ -67,6 +77,34 @@ async def run_container(image_name, data):
         return {"container_run_success": False, "error": str(e)}
     finally:
         container.remove()
+
+
+def login_to_ecr():
+    import subprocess
+
+    try:
+        subprocess.run(
+            [
+                "aws",
+                "ecr",
+                "get-login-password",
+                "--region",
+                "ap-northeast-1",
+                "|",
+                "docker",
+                "login",
+                "--username",
+                "AWS",
+                "--password-stdin",
+                ECR_REGISTRY,
+            ],
+            check=True,
+            shell=True,
+        )
+        print("Successfully logged in to ECR")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to login to ECR: {e}")
+        raise
 
 
 if __name__ == "__main__":
