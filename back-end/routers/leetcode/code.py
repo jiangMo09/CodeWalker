@@ -100,7 +100,7 @@ async def execute_code(data):
 
     language_to_image = {
         "javascript": "js-docker",
-        "python": "python-docker",
+        "python3": "python-docker",
         "java": "java-docker",
         "cpp": "cpp-docker",
     }
@@ -117,7 +117,7 @@ async def execute_code(data):
 async def post_question_code(typed_code: CodeTyped, db=Depends(get_db)):
     try:
         question_query = (
-            "SELECT id, camel_case_name, parameters_count FROM questions WHERE id = %s"
+            "SELECT id, function_name, parameters_count FROM questions WHERE id = %s"
         )
         question_result = execute_query(
             db, question_query, (typed_code.question_id,), fetch_method="fetchone"
@@ -132,8 +132,6 @@ async def post_question_code(typed_code: CodeTyped, db=Depends(get_db)):
         test_cases_result = execute_query(
             db, test_cases_query, (typed_code.question_id,), fetch_method="fetchone"
         )
-        print("test_cases_result", test_cases_result)
-
 
         if not test_cases_result:
             raise HTTPException(
@@ -145,7 +143,7 @@ async def post_question_code(typed_code: CodeTyped, db=Depends(get_db)):
             "correct_answer": test_cases_result[f"correct_answer_{submit_status}"],
             "lang": typed_code.lang,
             "question_id": str(typed_code.question_id),
-            "function_name": question_result["camel_case_name"],
+            "function_name": question_result["function_name"],
             "typed_code": typed_code.typed_code,
             "parameters_count": question_result["parameters_count"],
         }
