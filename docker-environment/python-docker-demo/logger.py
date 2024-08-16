@@ -1,19 +1,39 @@
-def log_test_case(index, stats):
-    print(
-        f"Test case {index}: {'Passed' if stats['passed'] else 'Failed'}. "
-        f"Inputs: {stats['inputs']}. "
-        f"Output: {stats['result']}. "
-        f"Expected: {stats['expected']}"
-    )
-    print(f"Run time: {stats['run_time']:.3f} ms")
-    print(f"Memory used: {stats['memory_used'] / 1024:.3f} KB")
+import json
+
+test_cases = []
+total_correct = 0
+total_testcases = 0
+
+
+def log_test_case(index, stats, inputs, expected_output):
+    global total_correct, total_testcases
+    total_testcases += 1
+    if stats["passed"]:
+        total_correct += 1
+
+    test_case_result = {
+        "test_case": index,
+        "passed": stats["passed"],
+        "inputs": json.dumps(inputs),
+        "output": (
+            "undefined" if stats["result"] is None else json.dumps(stats["result"])
+        ),
+        "expected": json.dumps(expected_output),
+        "run_time": f"{stats['run_time']:.3f} ms",
+        "memory": f"{stats['memory_used'] / 1024:.3f} KB",
+    }
+
+    test_cases.append(test_case_result)
 
 
 def log_summary(stats):
-    print(
-        "All test cases passed!"
-        if stats["all_tests_passed"]
-        else "Some test cases failed."
-    )
-    print(f"Total run time: {stats['total_run_time']:.3f} ms")
-    print(f"Total memory used: {stats['total_memory_used'] / 1024:.3f} KB")
+    summary = {
+        "run_result": test_cases,
+        "total_correct": total_correct,
+        "total_testcases": total_testcases,
+        "total_run_time": f"{stats['total_run_time']:.3f} ms",
+        "total_run_memory": f"{stats['total_memory_used'] / 1024:.3f} MB",
+        "all_passed": stats["all_tests_passed"],
+    }
+
+    print(json.dumps(summary, default=lambda x: "undefined" if x is None else x))
