@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import Question from "../../view/Queston";
+import Question from "../../view/Question";
 
 const QuestionPage = () => {
   const router = useRouter();
