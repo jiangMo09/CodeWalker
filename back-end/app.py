@@ -33,7 +33,7 @@ class Response(BaseModel):
     data: QuestionsList
 
 
-@app.get("/api/questions_list", response_model=Response)
+@app.get("/questions_list", response_model=Response)
 async def get_questions_list(db=Depends(get_db)):
     try:
         query = "SELECT id, pretty_name, kebab_case_name FROM questions"
@@ -53,6 +53,6 @@ async def get_questions_list(db=Depends(get_db)):
         )
 
 
-@app.get("/api/ranking")
+@app.get("/ranking")
 async def get_ranking():
-    return {"message": "/api/ranking"}
+    return {"message": "/ranking"}
