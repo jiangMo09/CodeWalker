@@ -37,6 +37,23 @@ const style = css`
     font-size: 24px;
     text-align: center;
     font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .coding-logo {
+    width: 24px;
+    margin-right: 5px;
+  }
+
+  .triangle-up {
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-bottom: 20.8px solid white;
+    margin-right: 5px;
   }
 
   .coach-container {
@@ -56,12 +73,14 @@ const style = css`
 
   .entry {
     width: fit-content;
+    cursor: pointer;
     margin: 20px auto;
     text-align: center;
     border: 1px solid white;
     padding: 10px;
     border-radius: 5px;
     transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+    display: block;
 
     &:hover {
       box-shadow: 0 0 10px 2px rgba(0, 255, 0, 0.8);

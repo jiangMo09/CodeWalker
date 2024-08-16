@@ -45,7 +45,10 @@ const Home = ({ className }) => {
         </div>
         <div className="features">
           <div className="feature">
-            <div className="title">Deployment Partner</div>
+            <div className="title">
+              <div className="triangle-up" />
+              Deployment Partner
+            </div>
             <div className="feature-description">
               <ul>
                 <li>
@@ -54,10 +57,18 @@ const Home = ({ className }) => {
                 <li>The project type must be pure JavaScript.</li>
               </ul>
             </div>
-            <div className="entry">go to deploying</div>
+            <a className="entry" href="/deploy">
+              go to deploying
+            </a>
           </div>
           <div className="feature">
-            <div className="title">Coding Coach</div>
+            <div className="title">
+              <img
+                className="coding-logo"
+                src="https://leetcode.com/_next/static/images/logo-dark-c96c407d175e36c81e236fcfdd682a0b.png"
+              />
+              Coding Coach
+            </div>
             <div className="coach-container">
               <div className="tabs">
                 <button
