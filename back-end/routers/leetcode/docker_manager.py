@@ -27,9 +27,6 @@ async def run_container(image_name, data):
     try:
         start = measure_resources()
 
-        if ENVIRONMENT == "production":
-            login_to_ecr()
-
         container = client.containers.run(
             full_image_name,
             environment=environment[image_name],
@@ -81,55 +78,6 @@ async def run_container(image_name, data):
         return {"container_run_success": False, "error": str(e)}
     finally:
         container.remove()
-
-
-def login_to_ecr():
-    import subprocess
-
-    try:
-        print("Starting ECR login process...")
-
-        print("Getting ECR login password...")
-        password_process = subprocess.run(
-            [
-                "aws",
-                "ecr",
-                "get-login-password",
-                "--region",
-                "ap-northeast-1",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        print("ECR login password retrieved successfully.")
-
-        print("Logging in to Docker...")
-        login_process = subprocess.run(
-            [
-                "docker",
-                "login",
-                "--username",
-                "AWS",
-                "--password-stdin",
-                ECR_REGISTRY,
-            ],
-            input=password_process.stdout,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        print("Docker login output:", login_process.stdout)
-
-        print("Successfully logged in to ECR")
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to login to ECR: {e}")
-        print(f"Command output: {e.output}")
-        print(f"Command stderr: {e.stderr}")
-        raise
-    except Exception as e:
-        print(f"Unexpected error during ECR login: {str(e)}")
-        raise
 
 
 if __name__ == "__main__":
