@@ -31,7 +31,11 @@ async def run_container(image_name, data):
             login_to_ecr()
 
         container = client.containers.run(
-            full_image_name, environment=environment[image_name], detach=True
+            full_image_name,
+            environment=environment[image_name],
+            detach=True,
+            cpu_quota=50000,
+            mem_limit="128m",
         )
         timeout = 15
         container.wait(timeout=timeout)
