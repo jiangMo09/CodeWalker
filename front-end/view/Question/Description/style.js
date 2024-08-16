@@ -5,6 +5,7 @@ const style = css`
   padding: 20px;
   min-width: 300px;
   overflow-y: auto;
+  height: 100vh;
 
   &::-webkit-scrollbar {
     width: 8px;

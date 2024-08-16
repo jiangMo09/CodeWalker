@@ -43,7 +43,7 @@ const Header = ({
 
   return (
     <div className={className}>
-      <div className="logo">CodeWalker</div>
+       <a href="/" className="logo">CodeWalker</a>
       <div className="buttons">
         <div
           className={`button run ${isButtonDisabled}`}
