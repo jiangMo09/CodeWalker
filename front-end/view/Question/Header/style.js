@@ -6,6 +6,7 @@ const style = css`
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
+  background-color: #1e1f26;
 
   .logo {
     font-size: 24px;
