@@ -2,7 +2,7 @@ import { css } from "styled-components";
 
 const style = css`
   header {
-    height: 5vh;
+    height: 6vh;
     display: flex;
     justify-content: space-between;
     align-items: center;

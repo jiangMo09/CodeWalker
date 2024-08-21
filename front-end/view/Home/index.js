@@ -38,7 +38,11 @@ const Home = ({ className }) => {
 
   return (
     <div className={className}>
-      <div className="website-name">CodeWalker</div>
+      <div className="header">
+        <div></div>
+        <div className="website-name">CodeWalker</div>
+        <div>user : Leona</div>
+      </div>
       <div className="main">
         <div className="description">
           CodeWalker, your coach and partner, coding together, getting stronger.

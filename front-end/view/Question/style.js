@@ -1,12 +1,11 @@
 import { css } from "styled-components";
 
 const style = css`
-  max-height: 100vh;
+  height: 100vh;
   overflow: hidden;
 
   .main {
     display: flex;
-    max-height: 100vh;
   }
 
   .right-part {
@@ -17,6 +16,7 @@ const style = css`
     min-width: 300px;
     margin-left: 6px;
     overflow: hidden;
+    height: 94vh;
   }
 `;
 

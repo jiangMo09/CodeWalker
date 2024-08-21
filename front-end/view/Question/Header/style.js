@@ -1,7 +1,7 @@
 import { css } from "styled-components";
 
 const style = css`
-  height: 5vh;
+  height: 6vh;
   display: flex;
   justify-content: space-between;
   align-items: center;

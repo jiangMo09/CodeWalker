@@ -6,11 +6,18 @@ const style = css`
   min-height: 100vh;
   font-size: 16px;
 
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    height: 6vh;
+  }
+
   .website-name {
     text-align: center;
     font-size: 48px;
     font-weight: 900;
-    padding-top: 20px;
   }
 
   .main {
