@@ -1,7 +1,7 @@
 import boto3
 import uuid
 
-OAC_ID = "E19EEGSWNVXGMG"
+from utils.load_env import CLOUDFRONT_OAC_ID, AWS_BUCKET_REGION
 
 
 def create_cloudfront(bucket_name):
@@ -15,10 +15,10 @@ def create_cloudfront(bucket_name):
             "Items": [
                 {
                     "Id": bucket_name,
-                    "DomainName": f"{bucket_name}.s3.ap-northeast-1.amazonaws.com",
+                    "DomainName": f"{bucket_name}.s3.{AWS_BUCKET_REGION}.amazonaws.com",
                     "OriginPath": "",
                     "S3OriginConfig": {"OriginAccessIdentity": ""},
-                    "OriginAccessControlId": OAC_ID,
+                    "OriginAccessControlId": CLOUDFRONT_OAC_ID,
                 },
             ],
         },

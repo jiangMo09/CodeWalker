@@ -3,7 +3,10 @@ import os
 import mimetypes
 import json
 
-account_id = 767397801164
+from botocore.exceptions import ClientError
+
+from utils.load_env import AWS_ACCOUNT_ID, AWS_BUCKET_REGION
+
 
 def update_bucket_policy_OAI(bucket_name, oai_id):
     s3 = boto3.client("s3")
@@ -18,17 +21,17 @@ def update_bucket_policy_OAI(bucket_name, oai_id):
                     "AWS": f"arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity {oai_id}"
                 },
                 "Action": "s3:GetObject",
-                "Resource": f"arn:aws:s3:::{bucket_name}/*"
+                "Resource": f"arn:aws:s3:::{bucket_name}/*",
             }
-        ]
+        ],
     }
 
     s3.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
     print(f"Bucket policy updated for '{bucket_name}'")
 
+
 def update_bucket_policy(bucket_name, distribution_id):
     s3 = boto3.client("s3")
-
 
     policy = {
         "Version": "2008-10-17",
@@ -42,7 +45,7 @@ def update_bucket_policy(bucket_name, distribution_id):
                 "Resource": f"arn:aws:s3:::{bucket_name}/*",
                 "Condition": {
                     "StringEquals": {
-                        "AWS:SourceArn": f"arn:aws:cloudfront::{account_id}:distribution/{distribution_id}"
+                        "AWS:SourceArn": f"arn:aws:cloudfront::{AWS_ACCOUNT_ID}:distribution/{distribution_id}"
                     }
                 },
             }
@@ -53,7 +56,65 @@ def update_bucket_policy(bucket_name, distribution_id):
     print(f"Bucket policy updated for '{bucket_name}'")
 
 
-def create_s3(bucket_name, region="ap-northeast-1"):
+def create_static_s3(
+    bucket_name,
+    region=AWS_BUCKET_REGION,
+    index_document="index.html",
+    error_document="error.html",
+):
+    s3 = boto3.client("s3", region_name=region)
+
+    try:
+        s3.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": region},
+        )
+        print(f"存儲桶 {bucket_name} 創建成功")
+
+        s3.put_public_access_block(
+            Bucket=bucket_name,
+            PublicAccessBlockConfiguration={
+                "BlockPublicAcls": False,
+                "IgnorePublicAcls": False,
+                "BlockPublicPolicy": False,
+                "RestrictPublicBuckets": False,
+            },
+        )
+        print("公共訪問設置已配置")
+
+        bucket_policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "PublicReadGetObject",
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "s3:GetObject",
+                    "Resource": f"arn:aws:s3:::{bucket_name}/*",
+                }
+            ],
+        }
+        s3.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(bucket_policy))
+        print("存儲桶策略已設置為允許公共讀取")
+
+        website_configuration = {
+            "ErrorDocument": {"Key": error_document},
+            "IndexDocument": {"Suffix": index_document},
+        }
+
+        s3.put_bucket_website(
+            Bucket=bucket_name, WebsiteConfiguration=website_configuration
+        )
+        print(f"靜態網站托管已成功啟用於存儲桶 {bucket_name}")
+
+        website_url = f"http://{bucket_name}.s3-website-{region}.amazonaws.com"
+        print(f"靜態網站URL: {website_url}")
+
+    except ClientError as e:
+        print(f"操作失敗: {e}")
+
+
+def create_s3(bucket_name, region=AWS_BUCKET_REGION):
     s3 = boto3.client("s3")
     try:
         s3.create_bucket(

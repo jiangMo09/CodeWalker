@@ -11,8 +11,14 @@ from utils.mysql import get_db, execute_query
 from utils.load_env import S3_BUCKET, S3_FOLDER, CLOUDFRONT_URL
 
 from .helper.github_repo import clone_repo, extract_github_info, is_public_repo
-from .helper.s3 import create_s3, upload_files_to_s3, update_bucket_policy
+from .helper.s3 import (
+    create_s3,
+    create_static_s3,
+    upload_files_to_s3,
+    update_bucket_policy,
+)
 from .helper.cloudfront import create_cloudfront
+from .helper.route53 import create_route53_record_for_s3
 
 router = APIRouter()
 
@@ -44,9 +50,17 @@ def validate_repo_contents(temp_dir):
 #     execute_query(db, query, (repo_url, cloudfront_path))
 
 
+def process_req_with_static_s3(local_path, bucket_name):
+    create_static_s3(bucket_name)
+    create_route53_record_for_s3(bucket_name)
+    upload_files_to_s3(local_path, bucket_name)
+
+
 def process_new_request(local_path, bucket_name):
+    # create_static_s3(bucket_name)
     create_s3(bucket_name)
     upload_files_to_s3(local_path, bucket_name)
+    # return
 
     cloudfront_url, distribution_id = create_cloudfront(bucket_name)
 
@@ -89,15 +103,17 @@ async def post_pure_js(repo_url: RepoUrl, db=Depends(get_db)):
             short_id = shortuuid.uuid()[:4]
             s3_prefix = f"{repo_name}-{short_id}".lower()
 
-            cloudfront_path = process_new_request(temp_dir, s3_prefix)
+            process_req_with_static_s3(temp_dir, s3_prefix + ".codewalker.cc")
 
-            print(cloudfront_path)
+            # cloudfront_path = process_new_request(temp_dir, s3_prefix)
+
+            # print(cloudfront_path)
             # save_repo_info(db, repo_url.url, cloudfront_path)
 
             return {
                 "data": {
                     "message": "Repository uploaded successfully",
-                    "cloudfront_path": cloudfront_path,
+                    # "cloudfront_path": cloudfront_path,
                 }
             }
 

@@ -1,19 +1,19 @@
 import os
 import redis.asyncio as redis
-from utils.load_env import REDIS_URL
+from utils.load_env import ELASTI_CACHE_URL
 from utils.logger_api import setup_logger
 
 logger = setup_logger("redis_client", "app.log")
 
 is_production = os.getenv("ENVIRONMENT") == "production"
 if is_production:
-    redis_url = REDIS_URL
+    redis_url = ELASTI_CACHE_URL
     if not redis_url.startswith("rediss://"):
         logger.error(
-            "Production REDIS_URL must start with 'rediss://' for SSL connection"
+            "Production ELASTI_CACHE_URL must start with 'rediss://' for SSL connection"
         )
         raise ValueError(
-            "Production REDIS_URL must start with 'rediss://' for SSL connection"
+            "Production ELASTI_CACHE_URL must start with 'rediss://' for SSL connection"
         )
 
     redis_options = {
