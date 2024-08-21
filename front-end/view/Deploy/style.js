@@ -96,8 +96,35 @@ const style = css`
   }
 
   .error {
-    color: #ff6b6b;
+    color: #ffffff;
+    background-color: #ff6b6b;
+    padding: 1rem;
+    border-radius: 4px;
     margin-top: 1rem;
+    text-align: center;
+  }
+
+  .success {
+    background-color: #4caf50;
+    color: white;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    text-align: center;
+
+    p {
+      margin-bottom: 0.5rem;
+    }
+
+    a {
+      color: white;
+      text-decoration: underline;
+      font-weight: bold;
+
+      &:hover {
+        text-decoration: none;
+      }
+    }
   }
 `;
 

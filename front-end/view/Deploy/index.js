@@ -1,15 +1,18 @@
 import { useState } from "react";
 import styled from "styled-components";
+import { postPureJs } from "../../services/api/Deploy";
 import style from "./style";
 
 const Deploy = ({ className }) => {
   const [repoUrl, setRepoUrl] = useState("");
   const [error, setError] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
+  const [deploymentSuccess, setDeploymentSuccess] = useState(null);
 
   const handleDeploy = async (e) => {
     e.preventDefault();
     setError("");
+    setDeploymentSuccess(null);
 
     if (!repoUrl.startsWith("https://github.com/")) {
       setError("Please enter a valid GitHub repository URL.");
@@ -18,11 +21,12 @@ const Deploy = ({ className }) => {
 
     setIsDeploying(true);
     try {
-      // 這裡應該是實際的部署邏輯
-      console.log("Deploying:", repoUrl);
-      // 模擬部署過程
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      alert("Deployment successful!");
+      const response = await postPureJs({
+        repoUrl
+      });
+      response.error
+        ? setError(response.error)
+        : setDeploymentSuccess(response);
     } catch (error) {
       setError("Deployment failed. Please try again.");
     } finally {
@@ -69,6 +73,18 @@ const Deploy = ({ className }) => {
           </button>
         </form>
         {error && <div className="error">{error}</div>}
+        {deploymentSuccess && (
+          <div className="success">
+            <p>{deploymentSuccess.message}</p>
+            <a
+              href={deploymentSuccess.cloudfront_path}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View Deployed Site
+            </a>
+          </div>
+        )}
       </main>
     </div>
   );

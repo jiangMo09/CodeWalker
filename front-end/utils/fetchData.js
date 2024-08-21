@@ -1,7 +1,5 @@
-const API_BASE_URL =
-  window.location.protocol == "https:"
-    ? "https://api.codewalker.cc"
-    : "http://127.0.0.1:8000";
+// const API_BASE_URL = "https://api.codewalker.cc";
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 export const fetchData = async (endpoint, options = {}) => {
   try {

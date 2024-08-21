@@ -25,8 +25,6 @@ const Header = ({
         selectedLanguage,
         userCode
       });
-      console.log("setTestResults", response);
-
       setTestResults(response);
     } catch (error) {
       console.error("Error posting code:", error);
@@ -43,7 +41,9 @@ const Header = ({
 
   return (
     <div className={className}>
-       <a href="/" className="logo">CodeWalker</a>
+      <a href="/" className="logo">
+        CodeWalker
+      </a>
       <div className="buttons">
         <div
           className={`button run ${isButtonDisabled}`}
