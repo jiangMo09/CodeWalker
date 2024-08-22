@@ -1,6 +1,8 @@
 import { css } from "styled-components";
 
 const style = css`
+  cursor: pointer;
+
   .modal-background {
     width: 100%;
     height: 100%;
