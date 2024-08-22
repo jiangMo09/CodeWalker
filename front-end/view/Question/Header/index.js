@@ -3,6 +3,8 @@ import styled from "styled-components";
 import { postTypedCode } from "../../../services/api/Question";
 import style from "./style";
 
+import User from "../../User";
+
 const Header = ({
   className,
   questionId,
@@ -67,7 +69,7 @@ const Header = ({
           submit
         </div>
       </div>
-      <div className="user">user : Leona</div>
+      <User />
     </div>
   );
 };

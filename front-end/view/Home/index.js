@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getQuestionsList } from "../../services/api/Home";
 
+import User from "../User";
 import style from "./style";
 
 const Home = ({ className }) => {
@@ -41,7 +42,7 @@ const Home = ({ className }) => {
       <div className="header">
         <div></div>
         <div className="website-name">CodeWalker</div>
-        <div>user : Leona</div>
+        <User />
       </div>
       <div className="main">
         <div className="description">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { postPureJs } from "../../services/api/Deploy";
+import User from "../User";
 import style from "./style";
 
 const Deploy = ({ className }) => {
@@ -41,7 +42,7 @@ const Deploy = ({ className }) => {
         <a href="/" className="logo">
           CodeWalker
         </a>
-        <div className="user">user : Leona</div>
+        <User />
       </header>
       <main>
         <h2>Deploy Your Project Now.</h2>
