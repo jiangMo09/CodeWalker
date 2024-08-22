@@ -1,11 +1,14 @@
 annotated-types==0.7.0
 anyio==4.4.0
+bcrypt==4.2.0
 boto3==1.35.0
 botocore==1.35.0
 certifi==2024.7.4
 charset-normalizer==3.3.2
 click==8.1.7
+dnspython==2.6.1
 docker==7.1.0
+email_validator==2.2.0
 fastapi==0.112.0
 gitdb==4.0.11
 GitPython==3.1.43
@@ -13,8 +16,10 @@ h11==0.14.0
 idna==3.7
 jmespath==1.0.1
 mysql-connector-python==9.0.0
+passlib==1.7.4
 pydantic==2.8.2
 pydantic_core==2.20.1
+PyJWT==2.9.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 requests==2.32.3
