@@ -16,7 +16,7 @@ const Header = ({
 
   const onButtonClick = async (submit) => {
     if (isDisabled) {
-      alert("答案提交中，請耐心等待");
+      alert("The answer is being submitted, please wait patiently.");
       return;
     }
     setIsDisabled(true);
