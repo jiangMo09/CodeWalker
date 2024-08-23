@@ -60,7 +60,7 @@ def create_route53_record_for_cloudfront(subdomain, cloudfront_domain_name):
                     "AliasTarget": {
                         "HostedZoneId": "Z2FDTNDATAQYW2",  # CloudFront 的 HostedZoneId
                         "DNSName": cloudfront_domain_name,  # 這應該是 CloudFront 分配的域名
-                        "EvaluateTargetHealth": False,
+                        "EvaluateTargetHealth": True,
                     },
                 },
             }
