@@ -2,6 +2,8 @@ import { useState } from "react";
 import styled from "styled-components";
 import { postPureJs } from "../../services/api/Deploy";
 import User from "../User";
+import Options from "./Options";
+import Rules from "./Rules";
 import style from "./style";
 
 const Deploy = ({ className }) => {
@@ -9,6 +11,8 @@ const Deploy = ({ className }) => {
   const [error, setError] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentSuccess, setDeploymentSuccess] = useState(null);
+  const [deploymentType, setDeploymentType] = useState("pureJs");
+  const [storageTypes, setStorageTypes] = useState([]);
 
   const handleDeploy = async (e) => {
     e.preventDefault();
@@ -23,7 +27,9 @@ const Deploy = ({ className }) => {
     setIsDeploying(true);
     try {
       const response = await postPureJs({
-        repoUrl
+        repoUrl,
+        deploymentType,
+        storageTypes
       });
       response.error
         ? setError(response.error)
@@ -36,6 +42,11 @@ const Deploy = ({ className }) => {
     }
   };
 
+  const handleDeploymentTypeChange = (e) => {
+    setDeploymentType(e.target.value);
+    setStorageTypes([]);
+  };
+
   return (
     <div className={className}>
       <header>
@@ -46,21 +57,13 @@ const Deploy = ({ className }) => {
       </header>
       <main>
         <h2>Deploy Your Project Now.</h2>
-        <div className="rules">
-          <h3>Deployment Rules :</h3>
-          <ul>
-            <li>GitHub project must be public.</li>
-            <li>
-              The GitHub project can only contain HTML, JS, and CSS files.
-            </li>
-            <li>index.html must be in the root directory.</li>
-            <li>
-              <a href="https://github.com/Padax/team-practice">
-                👉 Example GitHub Repository Link 👈
-              </a>
-            </li>
-          </ul>
-        </div>
+        <Options
+          deploymentType={deploymentType}
+          onDeploymentTypeChange={handleDeploymentTypeChange}
+          storageTypes={storageTypes}
+          onStorageTypeChange={setStorageTypes}
+        />
+        <Rules deploymentType={deploymentType} storageTypes={storageTypes} />
         <form onSubmit={handleDeploy}>
           <input
             type="text"
@@ -78,7 +81,7 @@ const Deploy = ({ className }) => {
           <div className="success">
             <p>{deploymentSuccess.message}</p>
             <a
-              href={deploymentSuccess.cloudfront_path}
+              href={deploymentSuccess.deploy_url}
               target="_blank"
               rel="noopener noreferrer"
             >

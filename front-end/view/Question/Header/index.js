@@ -50,7 +50,10 @@ const Header = ({
         <div
           className={`button run ${isButtonDisabled}`}
           onClick={() => {
-            if (!isDisabled) onButtonClick(false);
+            if (isDisabled) {
+              return;
+            }
+            onButtonClick(false);
           }}
         >
           <img className="run-icon icon" src="/images/run.svg" />
@@ -59,7 +62,10 @@ const Header = ({
         <div
           className={`button submit ${isButtonDisabled}`}
           onClick={() => {
-            if (!isDisabled) onButtonClick(true);
+            if (isDisabled) {
+              return;
+            }
+            onButtonClick(true);
           }}
         >
           <img

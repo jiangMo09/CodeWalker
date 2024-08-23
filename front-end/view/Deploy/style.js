@@ -27,37 +27,6 @@ const style = css`
     margin-bottom: 2rem;
   }
 
-  .rules {
-    background-color: #2d2f39;
-    padding: 1rem;
-    border-radius: 5px;
-    margin-bottom: 2rem;
-
-    h3 {
-      margin-top: 0;
-    }
-
-    ul {
-      padding-left: 1.5rem;
-      line-height: 2;
-    }
-
-    a {
-      position: relative;
-    }
-
-    a::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      bottom: -2px;
-      width: 100%;
-      height: 1px;
-      background-color: rgba(0, 255, 0, 0.8);
-      box-shadow: 0 0 6px 1.5px rgba(0, 255, 0, 0.8);
-    }
-  }
-
   form {
     display: flex;
     flex-direction: column;
