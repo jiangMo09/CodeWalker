@@ -14,6 +14,7 @@ ENVIRONMENT = os.getenv("ENVIRONMENT")
 
 AWS_ACCOUNT_ID = os.getenv("AWS_ACCOUNT_ID")
 AWS_BUCKET_REGION = os.getenv("AWS_BUCKET_REGION")
+AWS_ACM_ID = os.getenv("AWS_ACM_ID")
 
 ECR_REGISTRY = os.getenv("ECR_REGISTRY")
 

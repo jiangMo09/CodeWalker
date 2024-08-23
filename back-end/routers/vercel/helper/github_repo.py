@@ -2,8 +2,10 @@ import os
 import shutil
 import re
 import requests
+from fastapi import HTTPException
+
 from git import Repo
-from typing import List, Set
+from typing import Set
 
 
 def clone_repo(repo_url: str, temp_dir: str) -> None:
@@ -22,7 +24,13 @@ def clone_repo(repo_url: str, temp_dir: str) -> None:
         "__pycache__",
     }
 
-    Repo.clone_from(repo_url, temp_dir)
+    # Repo.clone_from(repo_url, temp_dir)
+    try:
+        Repo.clone_from(repo_url, temp_dir)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Failed to clone repository: {str(e)}"
+        )
 
     def remove_excluded_items(directory: str) -> None:
         with os.scandir(directory) as entries:
@@ -59,3 +67,18 @@ def extract_github_info(repo_url):
 def is_public_repo(repo_url):
     response = requests.get(repo_url)
     return response.status_code == 200
+
+
+def validate_repo_contents(temp_dir):
+    allowed_extensions = {".html", ".js", ".css"}
+    has_index_html = False
+
+    for root, _, files in os.walk(temp_dir):
+        for file in files:
+            if file == "index.html" and root == temp_dir:
+                has_index_html = True
+            file_extension = os.path.splitext(file)[1].lower()
+            if file_extension not in allowed_extensions:
+                return False
+
+    return has_index_html
