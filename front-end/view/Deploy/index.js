@@ -49,14 +49,14 @@ const Deploy = ({ className }) => {
 
   return (
     <div className={className}>
-      <header>
+      <header className="deploy-header">
         <a href="/" className="logo">
           CodeWalker
         </a>
         <User />
       </header>
-      <main>
-        <h2>Deploy Your Project Now.</h2>
+      <main className="deploy-main">
+        <h2 className="deploy-title">Deploy Your Project Now.</h2>
         <Options
           deploymentType={deploymentType}
           onDeploymentTypeChange={handleDeploymentTypeChange}
@@ -64,23 +64,29 @@ const Deploy = ({ className }) => {
           onStorageTypeChange={setStorageTypes}
         />
         <Rules deploymentType={deploymentType} storageTypes={storageTypes} />
-        <form onSubmit={handleDeploy}>
+        <form className="deploy-form" onSubmit={handleDeploy}>
           <input
+            className="deploy-input"
             type="text"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
             placeholder="Enter GitHub repository URL"
             required
           />
-          <button type="submit" disabled={isDeploying}>
+          <button
+            className="deploy-button"
+            type="submit"
+            disabled={isDeploying}
+          >
             {isDeploying ? "Deploying..." : "Deploy"}
           </button>
         </form>
-        {error && <div className="error">{error}</div>}
+        {error && <div className="error-message">{error}</div>}
         {deploymentSuccess && (
           <div className="success">
-            <p>{deploymentSuccess.message}</p>
+            <p className="success-message">{deploymentSuccess.message}</p>
             <a
+              className="success-link"
               href={deploymentSuccess.deploy_url}
               target="_blank"
               rel="noopener noreferrer"

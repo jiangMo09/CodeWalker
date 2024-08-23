@@ -1,8 +1,8 @@
 import { css } from "styled-components";
 
 const style = css`
-  header {
-    height: 6vh;
+  .deploy-header {
+    height: 60px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -16,25 +16,25 @@ const style = css`
     cursor: pointer;
   }
 
-  main {
+  .deploy-main {
     max-width: 800px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+    margin: 32px auto;
+    padding: 0 16px;
   }
 
-  h2 {
+  .deploy-title {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 32px;
   }
 
-  form {
+  .deploy-form {
     display: flex;
     flex-direction: column;
   }
 
-  input {
-    padding: 0.75rem;
-    margin-bottom: 1rem;
+  .deploy-input {
+    padding: 12px;
+    margin-bottom: 16px;
     background-color: #2d2f39;
     border: 1px solid #444;
     border-radius: 4px;
@@ -45,8 +45,8 @@ const style = css`
     }
   }
 
-  button {
-    padding: 0.75rem;
+  .deploy-button {
+    padding: 12px;
     background-color: #4caf50;
     color: white;
     border: none;
@@ -64,35 +64,35 @@ const style = css`
     }
   }
 
-  .error {
+  .error-message {
     color: #ffffff;
     background-color: #ff6b6b;
-    padding: 1rem;
+    padding: 16px;
     border-radius: 4px;
-    margin-top: 1rem;
+    margin-top: 16px;
     text-align: center;
   }
 
   .success {
     background-color: #4caf50;
     color: white;
-    padding: 1rem;
+    padding: 16px;
     border-radius: 4px;
-    margin-top: 1rem;
+    margin-top: 16px;
     text-align: center;
+  }
 
-    p {
-      margin-bottom: 0.5rem;
-    }
+  .success-message {
+    margin-bottom: 8px;
+  }
 
-    a {
-      color: white;
-      text-decoration: underline;
-      font-weight: bold;
+  .success-link {
+    color: white;
+    text-decoration: underline;
+    font-weight: bold;
 
-      &:hover {
-        text-decoration: none;
-      }
+    &:hover {
+      text-decoration: none;
     }
   }
 `;

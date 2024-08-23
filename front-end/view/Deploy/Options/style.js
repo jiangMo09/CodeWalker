@@ -3,10 +3,11 @@ import { css } from "styled-components";
 const style = css`
   display: flex;
   align-items: center;
+  margin-bottom: 20px;
 
   .select-wrapper {
     width: 200px;
-    margin: 0 20px 20px 0;
+    margin-right: 20px;
   }
 
   select {
