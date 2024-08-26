@@ -1,9 +1,10 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { postPureJs } from "../../services/api/Deploy";
+import { postPureJs, postFastApi } from "../../services/api/Deploy";
 import User from "../User";
 import Options from "./Options";
 import Rules from "./Rules";
+import Env from "./Env";
 import style from "./style";
 
 const Deploy = ({ className }) => {
@@ -13,6 +14,26 @@ const Deploy = ({ className }) => {
   const [deploymentSuccess, setDeploymentSuccess] = useState(null);
   const [deploymentType, setDeploymentType] = useState("pureJs");
   const [storageTypes, setStorageTypes] = useState([]);
+  const [rootDir, setRootDir] = useState("");
+  const [envVars, setEnvVars] = useState([{ key: "", value: "" }]);
+  const [buildCommand, setBuildCommand] = useState("");
+
+  const handleDeploymentTypeChange = (e) => {
+    setDeploymentType(e.target.value);
+    setStorageTypes([]);
+  };
+
+  const handleRootDirChange = (newRootDir) => {
+    setRootDir(newRootDir);
+  };
+
+  const handleEnvVarsChange = (newEnvVars) => {
+    setEnvVars(newEnvVars);
+  };
+
+  const handleBuildCommandChange = (newBuildCommand) => {
+    setBuildCommand(newBuildCommand);
+  };
 
   const handleDeploy = async (e) => {
     e.preventDefault();
@@ -26,25 +47,34 @@ const Deploy = ({ className }) => {
 
     setIsDeploying(true);
     try {
-      const response = await postPureJs({
+      const deploymentData = {
         repoUrl,
         deploymentType,
-        storageTypes
-      });
+        storageTypes,
+        rootDir,
+        buildCommand,
+        envVars
+      };
+
+      let response;
+      if (deploymentType === "pureJs") {
+        response = await postPureJs(deploymentData);
+      } else if (deploymentType === "fastApi") {
+        response = await postFastApi(deploymentData);
+      } else {
+        throw new Error("Invalid deployment type");
+      }
+
       response.error
         ? setError(response.error)
         : setDeploymentSuccess(response);
     } catch (error) {
       setError("Deployment failed. Please try again.");
+      console.error("Deployment error:", error);
     } finally {
       setIsDeploying(false);
       setRepoUrl("");
     }
-  };
-
-  const handleDeploymentTypeChange = (e) => {
-    setDeploymentType(e.target.value);
-    setStorageTypes([]);
   };
 
   return (
@@ -65,6 +95,16 @@ const Deploy = ({ className }) => {
         />
         <Rules deploymentType={deploymentType} storageTypes={storageTypes} />
         <form className="deploy-form" onSubmit={handleDeploy}>
+          {deploymentType === "fastApi" && (
+            <Env
+              rootDir={rootDir}
+              envVars={envVars}
+              buildCommand={buildCommand}
+              onRootDirChange={handleRootDirChange}
+              onEnvVarsChange={handleEnvVarsChange}
+              onBuildCommandChange={handleBuildCommandChange}
+            />
+          )}
           <input
             className="deploy-input"
             type="text"

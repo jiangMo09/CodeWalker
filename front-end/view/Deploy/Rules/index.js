@@ -9,7 +9,15 @@ const Rules = ({ className, deploymentType, storageTypes }) => {
           <li>GitHub project must be public.</li>
           <li>The project root directory must have requirements.txt.</li>
           {storageTypes.includes("sqlite") && (
-            <li>There must be a sql file in the project.</li>
+            <li>
+              There must be a SQL file in the root directory of the project.
+            </li>
+          )}
+          {storageTypes.includes("redis") && (
+            <li>
+              You must provide Redis connection details in the Environment
+              Variables.
+            </li>
           )}
           <li>Login required.</li>
           <li>

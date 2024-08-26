@@ -47,8 +47,8 @@ const Options = ({
             <label>
               <input
                 type="checkbox"
-                checked={storageTypes.includes("elasticache")}
-                onChange={() => handleStorageTypeChange("elasticache")}
+                checked={storageTypes.includes("redis")}
+                onChange={() => handleStorageTypeChange("redis")}
               />
               Redis
             </label>

@@ -76,7 +76,7 @@ def process_req_with_cdn_s3(local_path, bucket_name):
         return None
 
 
-@router.post("/pure_js")
+@router.post("/deploy/pure_js")
 async def post_pure_js(repo_url: RepoUrl, db=Depends(get_db)):
     print("repo_url repo_url", repo_url)
     try:

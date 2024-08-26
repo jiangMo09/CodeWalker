@@ -1,6 +1,8 @@
 import { css } from "styled-components";
 
 const style = css`
+  padding-bottom: 20px;
+
   .deploy-header {
     height: 60px;
     display: flex;
