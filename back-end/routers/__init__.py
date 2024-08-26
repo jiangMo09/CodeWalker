@@ -8,12 +8,14 @@ from .leetcode.code import router as code_router
 from .leetcode.data_input import router as data_input_router
 
 from .vercel.pure_js import router as pure_js_router
+from .vercel.fast_api import router as fast_api_router
 
 api_router = APIRouter()
 api_router.include_router(description_router, tags=["leetcode"])
 api_router.include_router(code_router, tags=["leetcode"])
 api_router.include_router(data_input_router, tags=["leetcode"])
 api_router.include_router(pure_js_router, tags=["vercel"])
+api_router.include_router(fast_api_router, tags=["vercel"])
 api_router.include_router(login_router, tags=["login"])
 api_router.include_router(register_router, tags=["register"])
 

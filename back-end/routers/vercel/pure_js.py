@@ -29,7 +29,7 @@ from .helper.route53 import (
 router = APIRouter()
 
 
-class RepoUrl(BaseModel):
+class RepoInfo(BaseModel):
     url: str
     deploymentType: str
     storageTypes: List[str]
@@ -77,12 +77,15 @@ def process_req_with_cdn_s3(local_path, bucket_name):
 
 
 @router.post("/deploy/pure_js")
-async def post_pure_js(repo_url: RepoUrl, db=Depends(get_db)):
+async def post_pure_js(repo_url: RepoInfo, db=Depends(get_db)):
     print("repo_url repo_url", repo_url)
     try:
 
         if not is_public_repo(repo_url.url):
             raise HTTPException(status_code=400, detail="Repository is not public")
+
+        if repo_url.deploymentType != "pureJs":
+            raise HTTPException(status_code=400, detail="deploymentType wrong")
 
         user_name, repo_name = extract_github_info(repo_url.url)
 
@@ -98,21 +101,20 @@ async def post_pure_js(repo_url: RepoUrl, db=Depends(get_db)):
             short_id = shortuuid.uuid()[:4]
             s3_prefix = f"{repo_name}-{short_id}".lower()
 
-            if repo_url.deploymentType == "pureJs":
-                if not validate_repo_contents(temp_dir):
-                    raise HTTPException(
-                        status_code=400, detail="Invalid repository contents"
-                    )
+            if not validate_repo_contents(temp_dir):
+                raise HTTPException(
+                    status_code=400, detail="Invalid repository contents"
+                )
 
-                if not repo_url.storageTypes:
-                    print("process_req_with_static_s3")
-                    process_req_with_static_s3(temp_dir, s3_prefix + ".codewalker.cc")
-                    deploy_url = f"http://{s3_prefix}.codewalker.cc"
-                elif repo_url.storageTypes[0] == "CloudFront":
-                    print("process_req_with_cdn_s3")
-                    deploy_url = process_req_with_cdn_s3(temp_dir, s3_prefix)
+            if not repo_url.storageTypes:
+                print("process_req_with_static_s3")
+                process_req_with_static_s3(temp_dir, s3_prefix + ".codewalker.cc")
+                deploy_url = f"http://{s3_prefix}.codewalker.cc"
+            elif repo_url.storageTypes[0] == "CloudFront":
+                print("process_req_with_cdn_s3")
+                deploy_url = process_req_with_cdn_s3(temp_dir, s3_prefix)
 
-                print("deploy_url", deploy_url)
+            print("deploy_url", deploy_url)
 
             # save_repo_info(db, repo_url.url, cloudfront_path)
 

@@ -21,7 +21,7 @@ const Rules = ({ className, deploymentType, storageTypes }) => {
           )}
           <li>Login required.</li>
           <li>
-            <a href="https://github.com/Padax/team-practice">
+            <a href="https://github.com/jiangMo09/FastAPI">
               👉 Example GitHub Repository Link 👈
             </a>
           </li>
