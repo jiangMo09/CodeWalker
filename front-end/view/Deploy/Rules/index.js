@@ -34,7 +34,7 @@ const Rules = ({ className, deploymentType, storageTypes }) => {
           <li>GitHub project must be public.</li>
           <li>The GitHub project can only contain HTML, JS, and CSS files.</li>
           <li>index.html must be in the root directory.</li>
-          {storageTypes.includes("CloudFront") && <li>Login required.</li>}
+          <li>Login required.</li>
           <li>
             <a href="https://github.com/Padax/team-practice">
               👉 Example GitHub Repository Link 👈
