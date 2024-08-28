@@ -36,15 +36,16 @@ def clone_repo(repo_url: str, temp_dir: str) -> None:
 
 
 def remove_excluded_items(directory: str) -> None:
-    for entry in os.scandir(directory):
-        if entry.name in EXCLUDE_SET:
-            path = entry.path
-            if entry.is_dir():
-                shutil.rmtree(path)
-            else:
-                os.remove(path)
-        elif entry.is_dir():
-            remove_excluded_items(entry.path)
+    with os.scandir(directory) as entries:
+        for entry in entries:
+            if entry.name in EXCLUDE_SET:
+                path = entry.path
+                if entry.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
+            elif entry.is_dir():
+                remove_excluded_items(entry.path)
 
 
 def extract_github_info(repo_url: str) -> Tuple[str, str]:
