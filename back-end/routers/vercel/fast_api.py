@@ -1,9 +1,8 @@
 import tempfile
-from typing import List
-import os
 import re
+from typing import List
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 
 from .helper.github_repo import clone_repo, extract_github_info, is_public_repo
@@ -40,7 +39,7 @@ class ErrorResponse(BaseModel):
     response_model=DeploymentResponse,
     responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
-async def deploy_fast_api(repo_info: RepoInfo):
+async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks):
     try:
         if not is_public_repo(repo_info.url):
             raise HTTPException(status_code=400, detail="Repository is not public")
@@ -49,13 +48,15 @@ async def deploy_fast_api(repo_info: RepoInfo):
         if not repo_name:
             raise HTTPException(
                 status_code=400,
-                detail="Repository is not github repo, can't find repo_name",
+                detail="Repository is not a GitHub repo, can't find repo_name",
             )
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            clone_repo(repo_info.url, temp_dir)
+            temp_dir_path = Path(temp_dir)
+            clone_repo(repo_info.url, temp_dir_path)
 
-            if not os.path.exists(os.path.join(temp_dir, "requirements.txt")):
+            requirements_file = temp_dir_path / "requirements.txt"
+            if not requirements_file.exists():
                 raise HTTPException(
                     status_code=400,
                     detail="requirements.txt not found in repository root",
@@ -76,7 +77,7 @@ async def deploy_fast_api(repo_info: RepoInfo):
                 )
             port = port_match.group(1)
 
-            root_dir_path = Path(temp_dir) / repo_info.rootDir
+            root_dir_path = temp_dir_path / repo_info.rootDir
             if not (root_dir_path / f"{main_file}.py").exists():
                 raise HTTPException(
                     status_code=400,
@@ -86,8 +87,8 @@ async def deploy_fast_api(repo_info: RepoInfo):
             service_name = f"{user_name}-{repo_name}".lower()
             image_tag = f"{user_name}/{repo_name}:latest".lower()
 
-            service_name, image_tag = deploy_with_docker_compose(
-                temp_dir,
+            container_id, host_port = await deploy_with_docker_compose(
+                temp_dir_path,
                 service_name,
                 image_tag,
                 port,
@@ -95,8 +96,8 @@ async def deploy_fast_api(repo_info: RepoInfo):
                 repo_info.buildCommand,
             )
 
-            delayed_cleanup(service_name, image_tag)
-            deploy_url = f"http://localhost:{port}"
+            background_tasks.add_task(delayed_cleanup, service_name, image_tag)
+            deploy_url = f"http://localhost:{host_port}"
 
         return DeploymentResponse(
             data=DeploymentData(
