@@ -1,12 +1,9 @@
 import { useRef, useState, useEffect } from "react";
 import { postLogin } from "../../../services/api/User";
+import { useGlobalContext } from "../../../providers/GlobalProvider";
 
-const LogIn = ({
-  className,
-  toggleLogInView,
-  closeShowLogInView,
-  setUsername
-}) => {
+const LogIn = ({ className, toggleLogInView, closeShowLogInView }) => {
+  const { setUsername, setIsLogin } = useGlobalContext();
   const emailRef = useRef();
   const passwordRef = useRef();
   const [responseMessage, setResponseMessage] = useState("");
@@ -33,7 +30,8 @@ const LogIn = ({
       if (response.success && response.token.access_token) {
         saveToken(response.token.access_token);
         setIsSuccess(true);
-        setUsername(response.username);
+        setUsername("user : " + response.username);
+        setIsLogin(true);
         setResponseMessage(response.message);
         closeShowLogInView();
       } else {

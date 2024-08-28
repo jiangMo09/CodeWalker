@@ -1,6 +1,7 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { postPureJs, postFastApi } from "../../services/api/Deploy";
+import { useGlobalContext } from "../../providers/GlobalProvider";
 import User from "../User";
 import Options from "./Options";
 import Rules from "./Rules";
@@ -8,6 +9,8 @@ import Env from "./Env";
 import style from "./style";
 
 const Deploy = ({ className }) => {
+  const { isLogin } = useGlobalContext();
+
   const [repoUrl, setRepoUrl] = useState("");
   const [error, setError] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
@@ -37,6 +40,10 @@ const Deploy = ({ className }) => {
 
   const handleDeploy = async (e) => {
     e.preventDefault();
+    if (!isLogin) {
+      setError("Please login for deploy.");
+      return;
+    }
     setError("");
     setDeploymentSuccess(null);
 
