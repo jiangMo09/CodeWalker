@@ -63,7 +63,10 @@ async def login(form_data: LoginRequest, db=Depends(get_db)):
             )
         access_token_expires = timedelta(minutes=30)
         access_token = create_access_token(
-            data={"email": user["email"], "username": user["username"]},
+            data={
+                "id": user["id"],
+                "username": user["username"],
+            },
             expires_delta=access_token_expires,
         )
         return JSONResponse(
@@ -72,6 +75,7 @@ async def login(form_data: LoginRequest, db=Depends(get_db)):
                 "data": {
                     "success": True,
                     "message": "Login successful",
+                    "id": user["id"],
                     "username": user["username"],
                     "token": {"access_token": access_token, "token_type": "bearer"},
                 }
