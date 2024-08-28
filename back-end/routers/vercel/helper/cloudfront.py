@@ -1,7 +1,6 @@
 import boto3
 import uuid
 from fastapi import HTTPException
-
 from utils.load_env import (
     CLOUDFRONT_OAC_ID,
     AWS_BUCKET_REGION,
@@ -10,17 +9,14 @@ from utils.load_env import (
 )
 
 
-def create_cloudfront(bucket_name):
+def create_cloudfront(bucket_name: str):
     try:
         cloudfront = boto3.client("cloudfront")
-
         distribution_config = {
             "CallerReference": str(uuid.uuid4()),
             "Aliases": {
                 "Quantity": 1,
-                "Items": [
-                    f"{bucket_name}.codewalker.cc",
-                ],
+                "Items": [f"{bucket_name}.codewalker.cc"],
             },
             "DefaultRootObject": "index.html",
             "Origins": {
@@ -43,8 +39,7 @@ def create_cloudfront(bucket_name):
                     "Items": ["GET", "HEAD"],
                     "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
                 },
-                # 使用推薦的 Cache Policy 和 Origin Request Policy
-                "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",  # CachingOptimized Policy ID (S3 優化)
+                "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",  # CachingOptimized Policy ID (S3 optimized)
             },
             "ViewerCertificate": {
                 "ACMCertificateArn": f"arn:aws:acm:us-east-1:{AWS_ACCOUNT_ID}:certificate/{AWS_ACM_ID}",
@@ -59,9 +54,10 @@ def create_cloudfront(bucket_name):
         distribution = cloudfront.create_distribution(
             DistributionConfig=distribution_config
         )
-        distribution_id = distribution["Distribution"]["Id"]
-        cloudfront_domain = distribution["Distribution"]["DomainName"]
-        return cloudfront_domain, distribution_id
+        return (
+            distribution["Distribution"]["DomainName"],
+            distribution["Distribution"]["Id"],
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,

@@ -1,8 +1,5 @@
 from fastapi import HTTPException
-
 import boto3
-
-
 from utils.load_env import (
     ROUTE53_HOSTED_ZONE_ID,
     S3_HOSTED_ZONE_ID,
@@ -10,9 +7,8 @@ from utils.load_env import (
 )
 
 
-def create_route53_record_for_s3(subdomain):
+def create_route53_record_for_s3(subdomain: str):
     route53 = boto3.client("route53")
-
     change_batch = {
         "Changes": [
             {
@@ -29,27 +25,24 @@ def create_route53_record_for_s3(subdomain):
             }
         ]
     }
-
     try:
         route53.change_resource_record_sets(
             HostedZoneId=ROUTE53_HOSTED_ZONE_ID, ChangeBatch=change_batch
         )
-        print(f"成功建立 http://{subdomain}")
+        print(f"Successfully created http://{subdomain}")
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to create Route53 record: {str(e)}"
         )
 
 
-def create_route53_record_for_cloudfront(subdomain, cloudfront_domain_name):
+def create_route53_record_for_cloudfront(subdomain: str, cloudfront_domain_name: str):
     route53 = boto3.client("route53")
-
     full_domain = (
         f"{subdomain}.codewalker.cc"
         if not subdomain.endswith(".codewalker.cc")
         else subdomain
     )
-
     change_batch = {
         "Changes": [
             {
@@ -58,21 +51,19 @@ def create_route53_record_for_cloudfront(subdomain, cloudfront_domain_name):
                     "Name": full_domain,
                     "Type": "A",
                     "AliasTarget": {
-                        "HostedZoneId": "Z2FDTNDATAQYW2",  # CloudFront 的 HostedZoneId
-                        "DNSName": cloudfront_domain_name,  # 這應該是 CloudFront 分配的域名
+                        "HostedZoneId": "Z2FDTNDATAQYW2",  # CloudFront's HostedZoneId
+                        "DNSName": cloudfront_domain_name,
                         "EvaluateTargetHealth": True,
                     },
                 },
             }
         ]
     }
-
     try:
         route53.change_resource_record_sets(
-            HostedZoneId=ROUTE53_HOSTED_ZONE_ID,
-            ChangeBatch=change_batch,
+            HostedZoneId=ROUTE53_HOSTED_ZONE_ID, ChangeBatch=change_batch
         )
-        print(f"成功建立/更新記錄 https://{full_domain}")
+        print(f"Successfully created/updated record https://{full_domain}")
         return f"https://{full_domain}"
     except Exception as e:
         raise HTTPException(
