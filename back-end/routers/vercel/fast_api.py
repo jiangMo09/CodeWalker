@@ -7,6 +7,12 @@ from pydantic import BaseModel
 
 from .helper.github_repo import clone_repo, extract_github_info, is_public_repo
 from .helper.docker import deploy_with_docker_compose, delayed_cleanup
+from .helper.target_group import (
+    create_target_group,
+    register_target,
+    create_listener_rule,
+)
+from .helper.route53 import create_route53_record_for_alb
 
 router = APIRouter()
 
@@ -87,7 +93,7 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
             service_name = f"{user_name}-{repo_name}".lower()
             image_tag = f"{user_name}/{repo_name}:latest".lower()
 
-            container_id, host_port = await deploy_with_docker_compose(
+            container_id, container_ip = await deploy_with_docker_compose(
                 temp_dir_path,
                 service_name,
                 image_tag,
@@ -96,18 +102,24 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
                 repo_info.buildCommand,
             )
 
+            subdomain = f"{user_name}-{repo_name}".lower()
+            target_group_arn = create_target_group(int(port), subdomain)
+            register_target(target_group_arn, container_ip, int(port))
+            create_listener_rule(target_group_arn, subdomain, 100)
+
+            full_domain = create_route53_record_for_alb(subdomain)
+
             background_tasks.add_task(delayed_cleanup, service_name, image_tag)
-            deploy_url = f"http://localhost:{host_port}"
 
         return DeploymentResponse(
             data=DeploymentData(
                 success=True,
                 message="Repository deployed successfully",
-                deploy_url=deploy_url,
+                deploy_url=full_domain,
             )
         )
 
     except HTTPException as he:
-        return {"data": {"error": f"Error1: {he.detail}"}}
+        return {"data": {"error": f"Error: {he.detail}"}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
