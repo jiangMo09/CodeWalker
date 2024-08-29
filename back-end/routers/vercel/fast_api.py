@@ -113,7 +113,7 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
             subdomain = f"{user_name}-{repo_name}".lower()
             target_group_arn = create_target_group(int(host_port), subdomain)
             register_target(target_group_arn, instance_id, int(host_port))
-            create_listener_rule(target_group_arn, subdomain, 100)
+            create_listener_rule(target_group_arn, subdomain)
 
             full_domain = create_route53_record_for_alb(subdomain)
 
