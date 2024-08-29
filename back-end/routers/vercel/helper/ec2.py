@@ -1,7 +1,7 @@
 import requests
 import boto3
 from botocore.exceptions import ClientError
-from utils.load_env import AWS_ALB_SECURITY_GROUP_ID
+from utils.load_env import AWS_ALB_SECURITY_GROUP_ID, AWS_BUCKET_REGION
 
 
 def get_instance_id():
@@ -32,7 +32,8 @@ def get_instance_id():
 
 
 def get_instance_security_group(instance_id):
-    ec2 = boto3.client("ec2")
+    ec2 = boto3.client("ec2", region_name=AWS_BUCKET_REGION)
+
     try:
         response = ec2.describe_instances(InstanceIds=[instance_id])
         security_groups = response["Reservations"][0]["Instances"][0]["SecurityGroups"]
@@ -43,7 +44,8 @@ def get_instance_security_group(instance_id):
 
 
 def add_security_group_rule(group_id, port):
-    ec2 = boto3.client("ec2")
+    ec2 = boto3.client("ec2", region_name=AWS_BUCKET_REGION)
+
     try:
         ec2.authorize_security_group_ingress(
             GroupId=group_id,
