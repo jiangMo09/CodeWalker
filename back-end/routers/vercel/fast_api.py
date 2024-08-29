@@ -13,6 +13,7 @@ from .helper.target_group import (
     create_listener_rule,
 )
 from .helper.route53 import create_route53_record_for_alb
+from .helper.ec2 import get_instance_private_ip
 
 router = APIRouter()
 
@@ -93,7 +94,7 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
             service_name = f"{user_name}-{repo_name}".lower()
             image_tag = f"{user_name}/{repo_name}:latest".lower()
 
-            container_id, container_ip = await deploy_with_docker_compose(
+            container_id, host_port = await deploy_with_docker_compose(
                 temp_dir_path,
                 service_name,
                 image_tag,
@@ -102,9 +103,16 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
                 repo_info.buildCommand,
             )
 
+            instance_ip = get_instance_private_ip()
+            if not instance_ip:
+                raise HTTPException(
+                    status_code=500, 
+                    detail="Failed to retrieve instance private IP"
+                )
+
             subdomain = f"{user_name}-{repo_name}".lower()
             target_group_arn = create_target_group(int(port), subdomain)
-            register_target(target_group_arn, container_ip, int(port))
+            register_target(target_group_arn, instance_ip, int(host_port))
             create_listener_rule(target_group_arn, subdomain, 100)
 
             full_domain = create_route53_record_for_alb(subdomain)
