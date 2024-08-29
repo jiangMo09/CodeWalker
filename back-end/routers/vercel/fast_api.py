@@ -113,7 +113,7 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
             sg_id = get_instance_security_group(instance_id)
             if not sg_id:
                 raise HTTPException(status_code=500, detail="Failed to get EC2 sg_id.")
-            add_security_group_rule(sg_id, host_port)
+            add_security_group_rule(sg_id, int(host_port))
 
             subdomain = f"{user_name}-{repo_name}".lower()
             target_group_arn = create_target_group(int(host_port), subdomain)
