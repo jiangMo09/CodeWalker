@@ -45,9 +45,14 @@ def get_instance_security_group(instance_id):
 
 def add_security_group_rule(group_id, port):
     ec2 = boto3.client("ec2", region_name=AWS_BUCKET_REGION)
+    
+    print(f"嘗試為安全組 {group_id} 添加規則，允許端口 {port} 的入站流量")
+    print(f"使用的 ALB 安全組 ID: {AWS_ALB_SECURITY_GROUP_ID}")
+    print(f"AWS 區域: {AWS_BUCKET_REGION}")
 
     try:
-        ec2.authorize_security_group_ingress(
+        print("正在調用 authorize_security_group_ingress API...")
+        response = ec2.authorize_security_group_ingress(
             GroupId=group_id,
             IpPermissions=[
                 {
@@ -58,6 +63,13 @@ def add_security_group_rule(group_id, port):
                 }
             ],
         )
+        print(f"API 響應: {response}")
         print(f"已成功添加安全組規則：允許來自ALB的流量通過端口 {port}")
     except ClientError as e:
         print(f"添加安全組規則失敗: {e}")
+        print(f"錯誤代碼: {e.response['Error']['Code']}")
+        print(f"錯誤消息: {e.response['Error']['Message']}")
+    except Exception as e:
+        print(f"發生未預期的錯誤: {e}")
+
+    print("安全組規則添加嘗試完成")
