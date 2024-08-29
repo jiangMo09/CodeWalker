@@ -103,7 +103,7 @@ async def deploy_with_docker_compose(
         )
 
 
-def delayed_cleanup(service_name: str, image_tag: str, delay_minutes: int = 1):
+def delayed_cleanup(service_name: str, image_tag: str, delay_minutes: int = 60):
     print(f"Scheduling cleanup for {service_name} after {delay_minutes} minutes")
     time.sleep(delay_minutes * 60)
     client = docker.from_env()
