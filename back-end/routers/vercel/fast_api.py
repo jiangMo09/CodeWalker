@@ -4,6 +4,7 @@ from typing import List
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
+import shortuuid
 
 from .helper.github_repo import clone_repo, extract_github_info, is_public_repo
 from .helper.docker import deploy_with_docker_compose, delayed_cleanup
@@ -94,9 +95,11 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
                     status_code=400,
                     detail=f"{main_file}.py not found in specified root directory",
                 )
+            
 
-            service_name = f"{user_name}-{repo_name}".lower()
-            image_tag = f"{user_name}/{repo_name}:latest".lower()
+            short_id = shortuuid.uuid()[:4]
+            service_name = f"{repo_name}-{short_id}".lower()
+            image_tag = f"{repo_name}/{short_id}:latest".lower()
 
             container_id, host_port = await deploy_with_docker_compose(
                 temp_dir_path,
@@ -119,7 +122,7 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
             except Exception as e:
                 print(f"調用 add_security_group_rule 時發生錯誤: {e}")
 
-            subdomain = f"{user_name}-{repo_name}".lower()
+            subdomain = f"{repo_name}-{short_id}".lower()
             target_group_arn = create_target_group(int(host_port), subdomain)
             register_target(target_group_arn, instance_id, int(host_port))
             create_listener_rule(target_group_arn, subdomain)
