@@ -13,7 +13,11 @@ from .helper.target_group import (
     create_listener_rule,
 )
 from .helper.route53 import create_route53_record_for_alb
-from .helper.ec2 import get_instance_id
+from .helper.ec2 import (
+    get_instance_id,
+    get_instance_security_group,
+    add_security_group_rule,
+)
 
 router = APIRouter()
 
@@ -105,10 +109,11 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
 
             instance_id = get_instance_id()
             if not instance_id:
-                raise HTTPException(
-                    status_code=500, 
-                    detail="Failed to get EC2 ID."
-                )
+                raise HTTPException(status_code=500, detail="Failed to get EC2 ID.")
+            sg_id = get_instance_security_group(instance_id)
+            if not sg_id:
+                raise HTTPException(status_code=500, detail="Failed to get EC2 sg_id.")
+            add_security_group_rule(sg_id, host_port)
 
             subdomain = f"{user_name}-{repo_name}".lower()
             target_group_arn = create_target_group(int(host_port), subdomain)
