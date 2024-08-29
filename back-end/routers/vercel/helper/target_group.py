@@ -16,7 +16,7 @@ def create_target_group(docker_port: int, subdomain: str):
             Protocol="HTTP",
             Port=docker_port,
             VpcId=AWS_VPC_ID,
-            TargetType="ip",
+            TargetType="instance",
             IpAddressType="ipv4",
         )
         target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
@@ -29,7 +29,8 @@ def create_target_group(docker_port: int, subdomain: str):
         )
 
 
-def create_listener_rule(target_group_arn: str, subdomain: str, priority: int):
+def create_listener_rule(target_group_arn: str, subdomain: str):
+    priority = get_available_priority(AWS_ALB_LISTENER_ARN)
     print(
         f"Creating listener rule for subdomain: {subdomain} with priority: {priority}"
     )
@@ -54,8 +55,8 @@ def create_listener_rule(target_group_arn: str, subdomain: str, priority: int):
         )
 
 
-def register_target(target_group_arn: str, instance_ip: str, docker_port: int):
-    print(f"Registering target with IP: {instance_ip} and port: {docker_port}")
+def register_target(target_group_arn: str, instance_id: str, docker_port: int):
+    print(f"Registering target with Instance ID: {instance_id} and port: {docker_port}")
     print(f"Using AWS region: {AWS_BUCKET_REGION}")
     alb_client = boto3.client("elbv2", region_name=AWS_BUCKET_REGION)
 
@@ -63,7 +64,7 @@ def register_target(target_group_arn: str, instance_ip: str, docker_port: int):
         print(f"Sending request to register target to group: {target_group_arn}")
         response = alb_client.register_targets(
             TargetGroupArn=target_group_arn,
-            Targets=[{"Id": instance_ip, "Port": docker_port}],
+            Targets=[{"Id": instance_id, "Port": docker_port}],
         )
         print(f"Target registered successfully to target group: {target_group_arn}")
     except Exception as e:
@@ -71,3 +72,20 @@ def register_target(target_group_arn: str, instance_ip: str, docker_port: int):
         raise HTTPException(
             status_code=500, detail=f"Failed to register target: {str(e)}"
         )
+
+
+def get_available_priority(listener_arn):
+    alb_client = boto3.client("elbv2", region_name=AWS_BUCKET_REGION)
+
+    response = alb_client.describe_rules(ListenerArn=listener_arn)
+    existing_priorities = [
+        rule["Priority"] for rule in response["Rules"] if rule["Priority"] != "default"
+    ]
+
+    existing_priorities = sorted([int(p) for p in existing_priorities])
+
+    for i in range(1, 50001):
+        if i not in existing_priorities:
+            return i
+
+    raise Exception("No available priorities")

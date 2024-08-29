@@ -88,10 +88,10 @@ def create_route53_record_for_alb(subdomain: str):
                 "Action": "UPSERT",
                 "ResourceRecordSet": {
                     "Name": full_domain,
-                    "Type": "A",
+                    "Type": "AAAA",
                     "AliasTarget": {
                         "HostedZoneId": AWS_ALB_HOSTED_ZONE_ID,
-                        "DNSName": AWS_ALB_DNS_NAME,
+                        "DNSName": f"dualstack.{AWS_ALB_DNS_NAME}",
                         "EvaluateTargetHealth": True,
                     },
                 },

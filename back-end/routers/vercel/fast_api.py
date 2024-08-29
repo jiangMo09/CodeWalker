@@ -13,7 +13,7 @@ from .helper.target_group import (
     create_listener_rule,
 )
 from .helper.route53 import create_route53_record_for_alb
-from .helper.ec2 import get_private_ip
+from .helper.ec2 import get_instance_id
 
 router = APIRouter()
 
@@ -103,16 +103,16 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
                 repo_info.buildCommand,
             )
 
-            private_ip = get_private_ip()
-            if not private_ip:
+            instance_id = get_instance_id()
+            if not instance_id:
                 raise HTTPException(
                     status_code=500, 
-                    detail="Failed to retrieve instance private IP"
+                    detail="Failed to get EC2 ID."
                 )
 
             subdomain = f"{user_name}-{repo_name}".lower()
-            target_group_arn = create_target_group(int(port), subdomain)
-            register_target(target_group_arn, private_ip, int(host_port))
+            target_group_arn = create_target_group(int(host_port), subdomain)
+            register_target(target_group_arn, instance_id, int(host_port))
             create_listener_rule(target_group_arn, subdomain, 100)
 
             full_domain = create_route53_record_for_alb(subdomain)
