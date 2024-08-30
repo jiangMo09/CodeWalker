@@ -2,17 +2,16 @@ import styled from "styled-components";
 import style from "./style";
 
 const Rules = ({ className, deploymentType, storageTypes }) => {
+  const link = storageTypes.includes("sqlite")
+    ? "https://github.com/jiangMo09/FastAPIWithSQLite"
+    : "https://github.com/jiangMo09/FastAPI";
+
   const getRules = () => {
     if (deploymentType === "fastApi") {
       return (
         <ul>
           <li>GitHub project must be public.</li>
           <li>The project root directory must have requirements.txt.</li>
-          {storageTypes.includes("sqlite") && (
-            <li>
-              There must be a SQL file in the root directory of the project.
-            </li>
-          )}
           {storageTypes.includes("redis") && (
             <li>
               You must provide Redis connection details in the Environment
@@ -21,9 +20,7 @@ const Rules = ({ className, deploymentType, storageTypes }) => {
           )}
           <li>Login required.</li>
           <li>
-            <a href="https://github.com/jiangMo09/FastAPI">
-              👉 Example GitHub Repository Link 👈
-            </a>
+            <a href={link}>👉 Example GitHub Repository Link 👈</a>
           </li>
         </ul>
       );
