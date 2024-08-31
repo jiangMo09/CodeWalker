@@ -2,9 +2,17 @@ import styled from "styled-components";
 import style from "./style";
 
 const Rules = ({ className, deploymentType, storageTypes }) => {
-  const link = storageTypes.includes("sqlite")
-    ? "https://github.com/jiangMo09/FastAPIWithSQLite"
-    : "https://github.com/jiangMo09/FastAPI";
+  const isRedis = storageTypes.includes("redis");
+  const isSqlite = storageTypes.includes("sqlite");
+  const link = () => {
+    if (isRedis) {
+      return "https://github.com/jiangMo09/FastAPIWithRedis";
+    }
+    if (isSqlite) {
+      return "https://github.com/jiangMo09/FastAPIWithSQLite";
+    }
+    return "https://github.com/jiangMo09/FastAPI";
+  };
 
   const getRules = () => {
     if (deploymentType === "fastApi") {
@@ -20,7 +28,7 @@ const Rules = ({ className, deploymentType, storageTypes }) => {
           )}
           <li>Login required.</li>
           <li>
-            <a href={link}>👉 Example GitHub Repository Link 👈</a>
+            <a href={link()}>👉 Example GitHub Repository Link 👈</a>
           </li>
         </ul>
       );
@@ -29,7 +37,9 @@ const Rules = ({ className, deploymentType, storageTypes }) => {
       return (
         <ul>
           <li>GitHub project must be public.</li>
-          <li>The GitHub project can only contain HTML, JS, and CSS files.</li>
+          <li>
+            The GitHub project can only contain HTML, JS, CSS and MD files.
+          </li>
           <li>index.html must be in the root directory.</li>
           <li>Login required.</li>
           <li>
