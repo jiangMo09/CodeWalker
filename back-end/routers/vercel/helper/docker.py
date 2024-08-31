@@ -101,6 +101,8 @@ async def deploy_with_docker_compose(
         raise HTTPException(
             status_code=500, detail=f"Error retrieving container ID: {str(e)}"
         )
+    finally:
+        client.close()
 
 
 def delayed_cleanup(service_name: str, image_tag: str, delay_minutes: int = 60):
@@ -110,6 +112,7 @@ def delayed_cleanup(service_name: str, image_tag: str, delay_minutes: int = 60):
 
     try:
         print(f"Starting cleanup for {service_name}")
+
         containers = client.containers.list(filters={"name": service_name})
         for container in containers:
             print(f"Stopping and removing container {container.id}")
@@ -119,6 +122,28 @@ def delayed_cleanup(service_name: str, image_tag: str, delay_minutes: int = 60):
         print(f"Removing image {image_tag}")
         client.images.remove(image_tag)
 
-        print(f"Cleaned up {service_name} and its image after {delay_minutes} minutes")
+        print(f"Cleaning up build cache for {service_name}")
+        build_cache_result = client.images.prune(
+            filters={"label": f"service={service_name}", "dangling": True}
+        )
+        print(
+            f"Cleaned up {build_cache_result['SpaceReclaimed']} bytes of build cache for {service_name}"
+        )
+
+        print(f"Cleaning up unused networks for {service_name}")
+        networks = client.networks.list(filters={"label": f"service={service_name}"})
+        removed_networks = 0
+        for network in networks:
+            if not network.containers:
+                print(f"Removing unused network: {network.name}")
+                network.remove()
+                removed_networks += 1
+        print(f"Removed {removed_networks} unused networks for {service_name}")
+
+        print(
+            f"Cleaned up containers, image, build cache, and unused networks for {service_name} after {delay_minutes} minutes"
+        )
     except Exception as e:
         print(f"Error during cleanup: {str(e)}")
+    finally:
+        client.close()
