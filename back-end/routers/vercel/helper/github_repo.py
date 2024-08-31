@@ -66,7 +66,7 @@ def is_public_repo(repo_url: str) -> bool:
 
 
 def validate_repo_contents(temp_dir: str) -> bool:
-    allowed_extensions = {".html", ".js", ".css"}
+    allowed_extensions = {".html", ".js", ".css", ".md"}
     has_index_html = False
     for root, _, files in os.walk(temp_dir):
         for file in files:

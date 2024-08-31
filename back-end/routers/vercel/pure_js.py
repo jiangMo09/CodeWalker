@@ -68,7 +68,7 @@ async def post_pure_js(repo_url: RepoInfo, db=Depends(get_db)):
             clone_repo(repo_url.url, temp_dir)
             if not validate_repo_contents(temp_dir):
                 raise HTTPException(
-                    status_code=400, detail="Invalid repository contents"
+                    status_code=400, detail="Invalid repository contents, repository only contain HTML, JS, CSS and MD files."
                 )
 
             short_id = shortuuid.uuid()[:4]
