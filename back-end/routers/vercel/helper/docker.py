@@ -69,10 +69,13 @@ def create_docker_compose_file(
         redis_port = find_redis_port(env_vars)
         print(f"Found Redis port: {redis_port}")
 
-        compose_config["services"]["redis"] = {
+        redis_service_name = f"{service_name}_redis"
+        compose_config["services"][redis_service_name] = {
             "image": "redis:alpine",
             "ports": [f"{redis_port}:{redis_port}"],
         }
+
+        compose_config["services"][service_name]["depends_on"] = [redis_service_name]
 
     with open(temp_dir / "docker-compose.yml", "w") as f:
         yaml.dump(compose_config, f)
