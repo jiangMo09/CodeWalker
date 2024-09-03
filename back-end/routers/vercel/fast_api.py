@@ -95,7 +95,6 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
                     status_code=400,
                     detail=f"{main_file}.py not found in specified root directory",
                 )
-            
 
             short_id = shortuuid.uuid()[:4]
             service_name = f"{repo_name}-{short_id}".lower()
@@ -108,6 +107,7 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
                 port,
                 repo_info.envVars,
                 repo_info.buildCommand,
+                repo_info.storageTypes,
             )
 
             instance_id = get_instance_id()

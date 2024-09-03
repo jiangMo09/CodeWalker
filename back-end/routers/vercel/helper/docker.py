@@ -23,6 +23,20 @@ def create_dockerfile(temp_dir: Path, port: str):
     print("Dockerfile created successfully")
 
 
+def find_redis_port(env_vars):
+    port_keys = ["REDIS_PORT", "PORT", "DB_PORT", "CACHE_PORT"]
+
+    for item in env_vars:
+        if item["key"] in port_keys:
+            return item["value"]
+
+    for item in env_vars:
+        if "PORT" in item["key"].upper():
+            return item["value"]
+
+    return "6379"
+
+
 def create_docker_compose_file(
     temp_dir: Path,
     service_name: str,
@@ -30,6 +44,7 @@ def create_docker_compose_file(
     port: str,
     env_vars: List[dict],
     build_command: str,
+    storage_types: List[str],
 ):
     print(f"Creating docker-compose.yml in {temp_dir} for service {service_name}")
     compose_config = {
@@ -49,6 +64,15 @@ def create_docker_compose_file(
             }
         },
     }
+
+    if "redis" in storage_types:
+        redis_port = find_redis_port(env_vars)
+        print(f"Found Redis port: {redis_port}")
+
+        compose_config["services"]["redis"] = {
+            "image": "redis:alpine",
+            "ports": [f"{redis_port}:{redis_port}"],
+        }
 
     with open(temp_dir / "docker-compose.yml", "w") as f:
         yaml.dump(compose_config, f)
@@ -72,11 +96,12 @@ async def deploy_with_docker_compose(
     port: str,
     env_vars: List[dict],
     build_command: str,
+    storageTypes: List[str],
 ):
     print(f"Deploying service {service_name} with Docker Compose")
     create_dockerfile(temp_dir, port)
     create_docker_compose_file(
-        temp_dir, service_name, image_tag, port, env_vars, build_command
+        temp_dir, service_name, image_tag, port, env_vars, build_command, storageTypes
     )
     run_docker_compose(temp_dir)
 
