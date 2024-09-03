@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { postPureJs, postFastApi } from "../../services/api/Deploy";
 import { useGlobalContext } from "../../providers/GlobalProvider";
@@ -66,10 +66,9 @@ const Deploy = ({ className }) => {
       let response;
       if (deploymentType === "pureJs") {
         response = await postPureJs(deploymentData);
-      } else if (deploymentType === "fastApi") {
+      }
+      if (deploymentType === "fastApi") {
         response = await postFastApi(deploymentData);
-      } else {
-        throw new Error("Invalid deployment type");
       }
 
       response.error
@@ -83,6 +82,19 @@ const Deploy = ({ className }) => {
       setRepoUrl("");
     }
   };
+
+  useEffect(() => {
+    if (!storageTypes.includes("redis")) {
+      setEnvVars([{ key: "", value: "" }]);
+      return;
+    }
+
+    setEnvVars([
+      { key: "REDIS_HOST", value: "redis" },
+      { key: "REDIS_PORT", value: 6379 },
+      { key: "REDIS_DB", value: 0 }
+    ]);
+  }, [storageTypes]);
 
   return (
     <div className={className}>
