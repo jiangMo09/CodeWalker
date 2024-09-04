@@ -34,7 +34,6 @@ def create_docker_compose_file(
     build_command: str,
     storage_types: List[str],
 ):
-    print("env_vars env_vars", env_vars)
     print(f"Creating docker-compose.yml in {temp_dir} for service {service_name}")
     compose_config = {
         "version": "3",
@@ -59,8 +58,6 @@ def create_docker_compose_file(
 
     if "redis" in storage_types:
         host_items = find_keys_containing(env_vars, "host")
-        print("host_items host_items", host_items)
-
 
         if not host_items:
             raise HTTPException(
