@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import List
 from fastapi import HTTPException
 
+from .find_keys_containing import find_keys_containing
+
 
 def create_dockerfile(temp_dir: Path, port: str):
     print(f"Creating Dockerfile in {temp_dir} with port {port}")
@@ -55,7 +57,7 @@ def create_docker_compose_file(
                 "container_name": service_name,
                 "image": image_tag,
                 "networks": [service_name],
-                "ports": [f"0:{port}"],
+                "ports": [f"{port}"],
                 "environment": [
                     f"{var['key']}={var['value']}" for var in env_vars if var["key"]
                 ],
@@ -65,11 +67,19 @@ def create_docker_compose_file(
                 "labels": ["com.docker.compose.rm=true"],
             }
         },
-        "networks": {service_name: None},
+        "networks": {service_name: {"driver": "bridge"}},
     }
 
     if "redis" in storage_types:
-        redis_service_name = f"{service_name}_redis"
+        host_items = find_keys_containing(env_vars, "host")
+
+        if not host_items:
+            raise HTTPException(
+                status_code=400,
+                detail="No Redis host configuration found in environment variables",
+            )
+
+        redis_service_name = host_items[0]["value"]
         compose_config["services"][redis_service_name] = {
             "image": "redis:alpine",
             "container_name": redis_service_name,
