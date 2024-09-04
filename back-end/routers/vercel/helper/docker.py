@@ -68,7 +68,7 @@ def create_docker_compose_file(
                 detail="No Redis host configuration found in environment variables",
             )
 
-        redis_service_name = host_items[0]["value"]
+        redis_service_name = f"redis_{service_name}"
         compose_config["services"][redis_service_name] = {
             "image": "redis:alpine",
             "container_name": redis_service_name,
@@ -76,6 +76,12 @@ def create_docker_compose_file(
         }
 
         compose_config["services"][service_name]["depends_on"] = [redis_service_name]
+        for item in host_items:
+            item["value"] = redis_service_name
+        compose_config["services"][service_name]["environment"] = [
+            f"{var['key']}={var['value']}" for var in env_vars if var["key"]
+        ]
+
         print("compose_config", compose_config)
 
     with open(temp_dir / "docker-compose.yml", "w") as f:
