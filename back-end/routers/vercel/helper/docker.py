@@ -25,20 +25,6 @@ def create_dockerfile(temp_dir: Path, port: str):
     print("Dockerfile created successfully")
 
 
-def find_redis_port(env_vars):
-    port_keys = ["REDIS_PORT", "PORT", "DB_PORT", "CACHE_PORT"]
-
-    for item in env_vars:
-        if item["key"] in port_keys:
-            return item["value"]
-
-    for item in env_vars:
-        if "PORT" in item["key"].upper():
-            return item["value"]
-
-    return "6379"
-
-
 def create_docker_compose_file(
     temp_dir: Path,
     service_name: str,
@@ -48,6 +34,7 @@ def create_docker_compose_file(
     build_command: str,
     storage_types: List[str],
 ):
+    print("env_vars env_vars", env_vars)
     print(f"Creating docker-compose.yml in {temp_dir} for service {service_name}")
     compose_config = {
         "version": "3",
@@ -72,6 +59,8 @@ def create_docker_compose_file(
 
     if "redis" in storage_types:
         host_items = find_keys_containing(env_vars, "host")
+        print("host_items host_items", host_items)
+
 
         if not host_items:
             raise HTTPException(
@@ -87,6 +76,7 @@ def create_docker_compose_file(
         }
 
         compose_config["services"][service_name]["depends_on"] = [redis_service_name]
+        print("compose_config", compose_config)
 
     with open(temp_dir / "docker-compose.yml", "w") as f:
         yaml.dump(compose_config, f)
