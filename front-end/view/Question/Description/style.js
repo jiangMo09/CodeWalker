@@ -4,9 +4,8 @@ const style = css`
   flex: 1;
   padding: 20px;
   min-width: 300px;
-
   overflow-y: auto;
-  height: 80vh;
+  height: 85vh;
 
   &::-webkit-scrollbar {
     width: 8px;
