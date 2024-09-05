@@ -1,4 +1,5 @@
 import { fetchData } from "../../utils/fetchData";
+import { getAuthToken } from "../../utils/getAuthToken";
 
 export const getQuestionDescription = ({ kebabCaseName }) =>
   fetchData(`/question_description?name=${kebabCaseName}`);
@@ -16,10 +17,19 @@ export const postTypedCode = ({
   questionId,
   selectedLanguage,
   userCode
-}) =>
-  fetchData(`/question_code`, {
+}) => {
+  const authToken = getAuthToken();
+
+  if (!authToken) {
+    return Promise.reject("No valid auth token found");
+  }
+
+  return fetchData(`/question_code`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      authToken: authToken
+    },
     body: JSON.stringify({
       submit: submit,
       question_id: questionId,
@@ -27,3 +37,4 @@ export const postTypedCode = ({
       typed_code: userCode
     })
   });
+};
