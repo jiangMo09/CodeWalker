@@ -6,7 +6,9 @@ const Tabs = ({
   testResults
 }) => {
   const getTestCaseStatus = (index) => {
-    if (!testResults || !testResults.container_run_success) return "pending";
+    if (!testResults || !testResults.container_run_success) {
+      return "pending";
+    }
     const result = testResults.run_result[index];
     return result ? (result.passed ? "passed" : "failed") : "pending";
   };

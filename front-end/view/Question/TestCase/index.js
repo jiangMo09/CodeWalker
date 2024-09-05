@@ -4,7 +4,7 @@ import Content from "./Content";
 import useTestCase from "../hooks/useTestCase";
 import style from "./style";
 
-const TestCase = ({ dataInput, className, testResults }) => {
+const TestCase = ({ className, dataInput, testResults }) => {
   const {
     selectedTestCase,
     setSelectedTestCase,
@@ -19,6 +19,20 @@ const TestCase = ({ dataInput, className, testResults }) => {
 
   return (
     <div className={className}>
+      {testResults?.container_run_success && (
+        <div className="title">
+          {testResults?.all_passed ? (
+            <>
+              <span className="status passed">Accepted</span>
+              <span className="run-time">
+                Runtime: {testResults?.total_run_time}
+              </span>
+            </>
+          ) : (
+            <span className="status">Wrong Answer</span>
+          )}
+        </div>
+      )}
       <Tabs
         testCases={testCases}
         paramCount={paramCount}

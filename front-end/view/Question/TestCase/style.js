@@ -24,6 +24,26 @@ const style = css`
     background: rgba(0, 0, 0, 0.5);
   }
 
+  .title {
+    margin-bottom: 10px;
+
+    .status {
+      font-size: 20px;
+      font-weight: 500;
+      color: rgb(244 67 54);
+    }
+
+    .passed {
+      margin-right: 10px;
+      color: green;
+    }
+
+    .run-time{
+      font-size: 14px;
+      opacity: 0.5;
+    }
+  }
+
   .test-case-tabs {
     display: flex;
     margin-bottom: 15px;
