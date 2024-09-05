@@ -1,9 +1,9 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { postTypedCode } from "../../../services/api/Question";
-import style from "./style";
-
+import { useGlobalContext } from "../../../providers/GlobalProvider";
 import User from "../../User";
+import style from "./style";
 
 const Header = ({
   className,
@@ -12,9 +12,14 @@ const Header = ({
   userCode,
   setTestResults
 }) => {
+  const { isLogin } = useGlobalContext();
   const [isDisabled, setIsDisabled] = useState(false);
 
   const onButtonClick = async (submit) => {
+    if (!isLogin) {
+      alert("Please Login.");
+      return;
+    }
     if (isDisabled) {
       alert("The answer is being submitted, please wait patiently.");
       return;

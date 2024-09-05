@@ -31,16 +31,17 @@ const style = css`
       font-size: 20px;
       font-weight: 500;
       color: rgb(244 67 54);
+      margin-right: 10px;
     }
 
     .passed {
-      margin-right: 10px;
       color: green;
     }
 
-    .run-time{
+    .run-time {
       font-size: 14px;
       opacity: 0.5;
+      margin-right: 10px;
     }
   }
 

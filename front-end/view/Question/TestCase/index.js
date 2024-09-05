@@ -27,15 +27,33 @@ const TestCase = ({ className, dataInput, testResults }) => {
 
       {testResults?.container_run_success && (
         <div className="title">
-          {testResults?.all_passed ? (
+          {testResults?.all_passed && (
             <>
               <span className="status passed">Accepted</span>
               <span className="run-time">
                 Runtime: {testResults?.total_run_time}
               </span>
+              <span className="run-time">
+                Better than: 
+              </span>
             </>
-          ) : (
-            <span className="status">Wrong Answer</span>
+          )}
+
+          {!testResults?.all_passed && (
+            <>
+              <span className="status">Wrong Answer</span>
+              {testResults?.run_result.length !=
+                testResults?.total_testcases && (
+                <>
+                  <span className="run-time">
+                    Total Test Cases: {testResults?.total_testcases}
+                  </span>
+                  <span className="run-time">
+                    Right Cases: {testResults?.total_correct}
+                  </span>
+                </>
+              )}
+            </>
           )}
         </div>
       )}
