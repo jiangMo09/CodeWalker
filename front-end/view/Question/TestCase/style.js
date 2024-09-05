@@ -6,7 +6,6 @@ const style = css`
   margin-top: 2vh;
   border-top: 1px solid #e8e8e8;
   overflow-y: auto;
-  ${'' /* min-height: 150px; */}
 
   &::-webkit-scrollbar {
     width: 8px;
