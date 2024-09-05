@@ -1,5 +1,4 @@
 import docker
-import sys
 import json
 import time
 from utils.load_env import ENVIRONMENT, ECR_REGISTRY
@@ -24,6 +23,10 @@ async def run_container(image_name, data):
     else:
         full_image_name = image_name
 
+    container = None
+    execution_time = 10
+    timeout = 10
+
     try:
         start = measure_resources()
 
@@ -34,7 +37,6 @@ async def run_container(image_name, data):
             cpu_quota=50000,
             mem_limit="128m",
         )
-        timeout = 15
         container.wait(timeout=timeout)
 
         end = measure_resources()
@@ -75,29 +77,18 @@ async def run_container(image_name, data):
         return result
     except Exception as e:
         print(f"發生錯誤: {str(e)}")
+        if execution_time >= timeout:
+            return {
+                "container_run_success": False,
+                "is_infinite_loop": True,
+                "error": str(e),
+            }
+
         return {"container_run_success": False, "error": str(e)}
     finally:
-        container.remove()
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("用法: python docker-manage.py <json_data>")
-        sys.exit(1)
-
-    data = json.loads(sys.argv[1])
-    language = data.get("lang", "").lower()
-
-    language_to_image = {
-        "javascript": "js-docker",
-        "python3": "python-docker",
-        "java": "java-docker",
-        "cpp": "cpp-docker",
-    }
-
-    if language not in language_to_image:
-        print(f"不支援的語言: {language}")
-        sys.exit(1)
-
-    image_name = language_to_image[language]
-    run_container(image_name, data)
+        if container:
+            try:
+                container.stop(timeout=2)
+                container.remove(force=True)
+            except Exception as e:
+                print(f"停止或移除容器時發生錯誤: {str(e)}")

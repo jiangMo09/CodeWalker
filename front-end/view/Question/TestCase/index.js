@@ -19,6 +19,12 @@ const TestCase = ({ className, dataInput, testResults }) => {
 
   return (
     <div className={className}>
+      {!testResults?.container_run_success && testResults?.is_infinite_loop && (
+        <div className="title">
+          <span className="status">Time Limit Exceeded</span>
+        </div>
+      )}
+
       {testResults?.container_run_success && (
         <div className="title">
           {testResults?.all_passed ? (
