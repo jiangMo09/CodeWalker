@@ -4,6 +4,8 @@ from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 
 from utils.mysql import get_db, execute_query
+from utils.redis_client import async_redis_client
+from helpers.leaderboard import get_total_leaderboard
 from routers import api_router
 
 app = FastAPI()
@@ -53,6 +55,51 @@ async def get_questions_list(db=Depends(get_db)):
         )
 
 
-@app.get("/ranking", tags=["home"])
-async def get_ranking():
-    return {"message": "/ranking"}
+class LeaderboardEntry(BaseModel):
+    username: str
+    score: float
+
+
+class LeaderboardResponse(BaseModel):
+    data: List[LeaderboardEntry]
+
+
+@app.get("/ranking", response_model=LeaderboardResponse, tags=["home"])
+async def get_ranking(db=Depends(get_db)):
+    try:
+        leaderboard = await get_total_leaderboard(limit=10)
+
+        if not leaderboard:
+            query = """
+            SELECT u.username, SUM(s.score) as total_score
+            FROM submissions s
+            JOIN users u ON s.user_id = u.id
+            GROUP BY s.user_id
+            ORDER BY total_score DESC
+            LIMIT 10
+            """
+            result = execute_query(db, query, fetch_method="fetchall")
+            leaderboard = [
+                {
+                    "username": row["username"],
+                    "score": round(float(row["total_score"]), 2),
+                }
+                for row in result
+            ]
+
+            leaderboard_key = "leaderboard:total"
+            pipeline = async_redis_client.pipeline()
+            for entry in leaderboard:
+                pipeline.zadd(leaderboard_key, {entry["username"]: entry["score"]})
+            await pipeline.execute()
+
+        formatted_leaderboard = [
+            LeaderboardEntry(username=entry["username"], score=entry["score"])
+            for entry in leaderboard
+        ]
+
+        return {"data": formatted_leaderboard}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { getQuestionsList } from "../../services/api/Home";
+import { getQuestionsList, getRanking } from "../../services/api/Home";
 
 import User from "../User";
 import style from "./style";
@@ -8,34 +8,27 @@ import style from "./style";
 const Home = ({ className }) => {
   const [activeTab, setActiveTab] = useState("questions");
   const [questions, setQuestions] = useState([]);
+  const [rankings, setRankings] = useState([]);
 
   useEffect(() => {
-    const getQuestions = async () => {
+    const fetchData = async () => {
       try {
         const questionsList = await getQuestionsList();
         if (questionsList && questionsList.questions) {
           setQuestions(questionsList.questions);
         }
+
+        const rankingData = await getRanking();
+        if (rankingData) {
+          setRankings(rankingData);
+        }
       } catch (error) {
-        console.error("Failed to fetch questions:", error);
+        console.error("Failed to fetch data:", error);
       }
     };
 
-    getQuestions();
+    fetchData();
   }, []);
-
-  const rankings = [
-    { username: "JohnDoe", score: 950 },
-    { username: "AliceSmith", score: 920 },
-    { username: "BobJohnson", score: 890 },
-    { username: "EmmaDavis", score: 860 },
-    { username: "MichaelWilson", score: 830 },
-    { username: "SophiaBrown", score: 800 },
-    { username: "DavidLee", score: 770 },
-    { username: "OliviaMartin", score: 740 },
-    { username: "JamesAnderson", score: 710 },
-    { username: "EmilyTaylor", score: 680 }
-  ];
 
   return (
     <div className={className}>

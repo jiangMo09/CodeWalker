@@ -57,7 +57,12 @@ async def get_total_leaderboard(limit: int = 10):
     )
 
     leaderboard = [
-        {"username": username.decode("utf-8"), "score": round(score, 2)}
+        {
+            "username": (
+                username.decode("utf-8") if isinstance(username, bytes) else username
+            ),
+            "score": round(float(score), 2),
+        }
         for username, score in leaderboard_data
     ]
 
