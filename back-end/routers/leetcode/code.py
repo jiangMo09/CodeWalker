@@ -1,10 +1,15 @@
-import json
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from pydantic import BaseModel
 from typing import List, Dict
+import jwt
 
 from .docker_manager import run_container
 from utils.mysql import get_db, execute_query
+from utils.load_env import JWT_SECRET_KEY
+from utils.redis_client import async_redis_client
+from helpers.leaderboard import update_leaderboard, get_total_leaderboard
+from helpers.score import calculate_score
+
 
 router = APIRouter()
 
@@ -114,7 +119,20 @@ async def execute_code(data):
 
 
 @router.post("/question_code")
-async def post_question_code(typed_code: CodeTyped, db=Depends(get_db)):
+async def post_question_code(
+    request: Request, typed_code: CodeTyped, db=Depends(get_db)
+):
+    auth_token = request.headers.get("authToken")
+
+    payload = jwt.decode(auth_token, JWT_SECRET_KEY, algorithms=["HS256"])
+    if not payload:
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please Login",
+        )
+    user_id = payload["id"]
+    username = payload["username"]
+
     try:
         question_query = (
             "SELECT id, function_name, parameters_count FROM questions WHERE id = %s"
@@ -148,6 +166,77 @@ async def post_question_code(typed_code: CodeTyped, db=Depends(get_db)):
             "parameters_count": question_result["parameters_count"],
         }
         result = await execute_code(docker_input)
+        if (
+            typed_code.submit
+            and result["container_run_success"]
+            and result["all_passed"]
+        ):
+            result["run_result"] = result["run_result"][
+                : 2 if typed_code.question_id == 4 else 3
+            ]
+
+            check_query = """
+            SELECT id FROM submissions 
+            WHERE user_id = %s AND question_id = %s
+            """
+            existing_submission = execute_query(
+                db,
+                check_query,
+                (user_id, typed_code.question_id),
+                fetch_method="fetchone",
+            )
+
+            lang_query = "SELECT id FROM languages WHERE name = %s"
+            lang_result = execute_query(
+                db, lang_query, (typed_code.lang,), fetch_method="fetchone"
+            )
+            language_id = lang_result["id"] if lang_result else None
+
+            memory = float(result["total_run_memory"].split()[0])
+            execution_time = float(result["total_run_time"].split()[0])
+            score = calculate_score(result)
+
+            if existing_submission:
+                update_query = """
+                UPDATE submissions 
+                SET language_id = %s, memory = %s, execution_time = %s, score = %s
+                WHERE id = %s
+                """
+                execute_query(
+                    db,
+                    update_query,
+                    (
+                        language_id,
+                        memory,
+                        execution_time,
+                        score,
+                        existing_submission["id"],
+                    ),
+                )
+            else:
+                insert_query = """
+                INSERT INTO submissions 
+                (user_id, question_id, language_id, memory, execution_time, score)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """
+                execute_query(
+                    db,
+                    insert_query,
+                    (
+                        user_id,
+                        typed_code.question_id,
+                        language_id,
+                        memory,
+                        execution_time,
+                        score,
+                    ),
+                )
+
+            percentile = await update_leaderboard(
+                typed_code.question_id, execution_time, username, score
+            )
+            result["percentile"] = percentile
+
         return {"data": result}
 
     except Exception as e:

@@ -34,7 +34,7 @@ const TestCase = ({ className, dataInput, testResults }) => {
                 Runtime: {testResults?.total_run_time}
               </span>
               <span className="run-time">
-                Better than: 
+                Better than: {testResults?.percentile}%
               </span>
             </>
           )}
