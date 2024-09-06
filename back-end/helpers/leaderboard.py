@@ -6,8 +6,8 @@ async def update_leaderboard(
 ):
 
     async with async_redis_client as redis:
-        question_leaderboard_key = f"leaderboard:question:{question_id}"
-        total_leaderboard_key = "leaderboard:total"
+        question_leaderboard_key = f"{{leaderboard}}:question:{question_id}"
+        total_leaderboard_key = "{leaderboard}:total"
 
         try:
             pipe = redis.pipeline()
@@ -50,7 +50,7 @@ async def update_leaderboard(
 
 
 async def get_total_leaderboard(limit: int = 10):
-    leaderboard_key = "leaderboard:total"
+    leaderboard_key = "{leaderboard}:total"
 
     leaderboard_data = await async_redis_client.zrange(
         leaderboard_key, 0, limit - 1, withscores=True, desc=True
