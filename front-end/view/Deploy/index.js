@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { postPureJs, postFastApi } from "../../services/api/Deploy";
+import {
+  postPureJs,
+  postFastApi,
+  getDeploymentStatus
+} from "../../services/api/Deploy";
 import { useGlobalContext } from "../../providers/GlobalProvider";
 import User from "../User";
 import Options from "./Options";
@@ -20,6 +24,7 @@ const Deploy = ({ className }) => {
   const [rootDir, setRootDir] = useState("");
   const [envVars, setEnvVars] = useState([{ key: "", value: "" }]);
   const [buildCommand, setBuildCommand] = useState("");
+  const [deploymentStatus, setDeploymentStatus] = useState(null);
 
   const handleDeploymentTypeChange = (e) => {
     setDeploymentType(e.target.value);
@@ -38,6 +43,36 @@ const Deploy = ({ className }) => {
     setBuildCommand(newBuildCommand);
   };
 
+  const checkDeploymentStatus = async (id) => {
+    if (!id) {
+      console.log("No deployment ID, cannot check status");
+      return;
+    }
+    console.log("Checking deployment status for ID:", id);
+
+    try {
+      const statusResponse = await getDeploymentStatus(id);
+      console.log("Status response:", statusResponse);
+      setDeploymentStatus(statusResponse);
+
+      if (["completed", "failed"].includes(statusResponse.status)) {
+        if (statusResponse.status === "completed") {
+          setDeploymentSuccess(statusResponse);
+        } else {
+          setError("Deployment failed. Please try again.");
+        }
+      } else {
+        console.log(
+          "Deployment still in progress, checking again in 5 seconds"
+        );
+        setTimeout(() => checkDeploymentStatus(id), 5000);
+      }
+    } catch (error) {
+      console.error("Error checking deployment status:", error);
+      setError("Error checking deployment status. Please try again.");
+    }
+  };
+
   const handleDeploy = async (e) => {
     e.preventDefault();
     if (!isLogin) {
@@ -46,6 +81,7 @@ const Deploy = ({ className }) => {
     }
     setError("");
     setDeploymentSuccess(null);
+    setDeploymentStatus(null);
 
     if (!repoUrl.startsWith("https://github.com/")) {
       setError("Please enter a valid GitHub repository URL.");
@@ -63,20 +99,35 @@ const Deploy = ({ className }) => {
         envVars
       };
 
+      console.log("Deployment data:", deploymentData);
+
       let response;
       if (deploymentType === "pureJs") {
         response = await postPureJs(deploymentData);
-      }
-      if (deploymentType === "fastApi") {
+      } else if (deploymentType === "fastApi") {
         response = await postFastApi(deploymentData);
+      } else {
+        throw new Error("Invalid deployment type");
       }
 
-      response.error
-        ? setError(response.error)
-        : setDeploymentSuccess(response);
+      console.log("API response:", response);
+
+      if (response.success) {
+        setDeploymentStatus({
+          status: "starting",
+          message: "Deployment started"
+        });
+        console.log(
+          "Starting to check deployment status for ID:",
+          response.deployment_id
+        );
+        checkDeploymentStatus(response.deployment_id); // 直接傳入 deployment_id
+      } else {
+        setError(response.message || "Deployment failed. Please try again.");
+      }
     } catch (error) {
-      setError("Deployment failed. Please try again.");
       console.error("Deployment error:", error);
+      setError(error.message || "Deployment failed. Please try again.");
     } finally {
       setIsDeploying(false);
       setRepoUrl("");
@@ -141,6 +192,18 @@ const Deploy = ({ className }) => {
           </button>
         </form>
         {error && <div className="error-message">{error}</div>}
+        {deploymentStatus && (
+          <div className="deployment-status">
+            <h3>Deployment Status: {deploymentStatus.status}</h3>
+            <p>{deploymentStatus.message}</p>
+            {deploymentStatus.status === "pending" && (
+              <progress
+                value={deploymentStatus.elapsed_time}
+                max="600"
+              ></progress>
+            )}
+          </div>
+        )}
         {deploymentSuccess && (
           <div className="success">
             <div className="success-content">

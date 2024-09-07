@@ -53,3 +53,19 @@ export const postFastApi = ({
     })
   });
 };
+
+export const getDeploymentStatus = (deploymentId) => {
+  const authToken = getAuthToken();
+
+  if (!authToken) {
+    return Promise.reject("No valid auth token found");
+  }
+
+  return fetchData(`/deploy/status/${deploymentId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      authToken: authToken
+    }
+  });
+};
