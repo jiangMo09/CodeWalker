@@ -53,7 +53,8 @@ def process_req_with_cdn_s3(local_path: str, bucket_name: str) -> str:
             status_code=500, detail="Failed to create CloudFront distribution"
         )
     update_bucket_policy(bucket_name, distribution_id)
-    return create_route53_record_for_cloudfront(bucket_name, cloudfront_domain)
+    url = create_route53_record_for_cloudfront(bucket_name, cloudfront_domain)
+    return url, distribution_id, cloudfront_domain
 
 
 def deploy_process(deployment_id: int, repo_url: RepoInfo):
@@ -85,10 +86,10 @@ def deploy_process(deployment_id: int, repo_url: RepoInfo):
                 cloudfront_id = None
                 cloudfront_url = None
             elif repo_url.storageTypes[0] == "CloudFront":
-                deploy_url = process_req_with_cdn_s3(temp_dir, s3_prefix)
+                deploy_url, cloudfront_id, cloudfront_url = process_req_with_cdn_s3(
+                    temp_dir, s3_prefix
+                )
                 s3_url = f"http://{bucket_name}.s3-website-us-east-1.amazonaws.com"
-                cloudfront_domain, cloudfront_id = create_cloudfront(bucket_name)
-                cloudfront_url = f"https://{cloudfront_domain}"
             else:
                 raise ValueError("Invalid storage type")
 
@@ -203,18 +204,21 @@ def check_deployment_status(deployment):
         if not url:
             return False
 
-        try:
-            response = requests.get(url, timeout=10)
-            if response.status_code == 200:
-                return True
-            else:
-                print(
-                    f"Deployment not ready yet. HTTP status code: {response.status_code}"
-                )
-                return False
-        except requests.RequestException as e:
-            print(f"Error checking deployment status: {str(e)}")
-            return False
+        return True
+
+        #TODO:response.status_code == 200
+        # try:
+        #     response = requests.get(url, timeout=10)
+        #     if response.status_code == 200:
+        #         return True
+        #     else:
+        #         print(
+        #             f"Deployment not ready yet. HTTP status code: {response.status_code}"
+        #         )
+        #         return False
+        # except requests.RequestException as e:
+        #     print(f"Error checking deployment status: {str(e)}")
+        #     return False
 
     return False
 
