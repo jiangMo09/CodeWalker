@@ -8,7 +8,7 @@ export const postPureJs = ({ repoUrl, deploymentType, storageTypes }) => {
     return Promise.reject("No valid auth token found");
   }
 
-  fetchData(`/deploy/pure_js`, {
+  return fetchData(`/deploy/pure_js`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -36,7 +36,7 @@ export const postFastApi = ({
     return Promise.reject("No valid auth token found");
   }
 
-  fetchData(`/deploy/fast_api`, {
+  return fetchData(`/deploy/fast_api`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
