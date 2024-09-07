@@ -31,7 +31,7 @@ const Options = ({
               checked={storageTypes.includes("CloudFront")}
               onChange={() => handleStorageTypeChange("CloudFront")}
             />
-            CloudFront
+            CloudFront（https）
           </label>
         )}
         {deploymentType === "fastApi" && (

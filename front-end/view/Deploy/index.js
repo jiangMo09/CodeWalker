@@ -143,15 +143,28 @@ const Deploy = ({ className }) => {
         {error && <div className="error-message">{error}</div>}
         {deploymentSuccess && (
           <div className="success">
-            <p className="success-message">{deploymentSuccess.message}</p>
-            <a
-              className="success-link"
-              href={deploymentSuccess.deploy_url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View Deployed Site
-            </a>
+            <div className="success-content">
+              <div className="success-title">
+                <div className="success-icon">✓</div>
+                <p className="success-message">{deploymentSuccess.message}</p>
+              </div>
+              <div className="success-actions">
+                <input
+                  className="success-url"
+                  type="text"
+                  value={deploymentSuccess.deploy_url}
+                  readOnly
+                />
+                <button
+                  className="success-open-button"
+                  onClick={() =>
+                    window.open(deploymentSuccess.deploy_url, "_blank")
+                  }
+                >
+                  Open
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
