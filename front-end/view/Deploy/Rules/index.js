@@ -43,7 +43,7 @@ const Rules = ({ className, deploymentType, storageTypes }) => {
           <li>index.html must be in the root directory.</li>
           <li>Login required.</li>
           <li>
-            <a href="https://github.com/Padax/team-practice">
+            <a href="https://github.com/WendyWang1031/greedySnakeGame">
               👉 Example GitHub Repository Link 👈
             </a>
           </li>
