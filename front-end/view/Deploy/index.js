@@ -43,7 +43,7 @@ const Deploy = ({ className }) => {
         <h2 className="deploy-title">Deploy Your Project Now.</h2>
         <Options
           deploymentType={deploymentType}
-          onDeploymentTypeChange={setDeploymentType}
+          onDeploymentTypeChange={(e) => setDeploymentType(e.target.value)}
           storageTypes={storageTypes}
           onStorageTypeChange={setStorageTypes}
         />
