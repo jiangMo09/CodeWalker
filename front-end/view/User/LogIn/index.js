@@ -10,10 +10,8 @@ const LogIn = ({ className, toggleLogInView, closeShowLogInView }) => {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const saveToken = (token) => {
-    const now = new Date();
     const item = {
-      value: token,
-      expiry: now.getTime() + 30 * 60 * 1000
+      value: token
     };
     localStorage.setItem("authToken", JSON.stringify(item));
   };
