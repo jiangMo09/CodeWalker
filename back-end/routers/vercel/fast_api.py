@@ -2,10 +2,13 @@ import tempfile
 import re
 from typing import List
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 import shortuuid
+import jwt
 
+from utils.mysql import get_db, execute_query, get_db_connection
+from utils.load_env import JWT_SECRET_KEY
 from .helper.github_repo import clone_repo, extract_github_info, is_public_repo
 from .helper.docker import deploy_with_docker_compose, delayed_cleanup
 from .helper.target_group import (
@@ -19,6 +22,7 @@ from .helper.ec2 import (
     get_instance_security_group,
     add_security_group_rule,
 )
+from .helper.get_deployment_status import get_deployment_status
 
 router = APIRouter()
 
@@ -32,37 +36,18 @@ class RepoInfo(BaseModel):
     rootDir: str
 
 
-class DeploymentData(BaseModel):
-    success: bool
-    message: str
-    deploy_url: str
-
-
-class DeploymentResponse(BaseModel):
-    data: DeploymentData
-
-
-class ErrorResponse(BaseModel):
-    error: str
-
-
-@router.post(
-    "/deploy/fast_api",
-    response_model=DeploymentResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-)
-async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks):
+def deploy_process(deployment_id: int, repo_info: RepoInfo):
+    connection = None
     try:
-        if not is_public_repo(repo_info.url):
-            raise HTTPException(status_code=400, detail="Repository is not public")
+        connection = get_db_connection()
+
+        execute_query(
+            connection,
+            "UPDATE deployments SET status = %s WHERE id = %s",
+            ("deploying", deployment_id),
+        )
 
         user_name, repo_name = extract_github_info(repo_info.url)
-        if not repo_name:
-            raise HTTPException(
-                status_code=400,
-                detail="Repository is not a GitHub repo, can't find repo_name",
-            )
-
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir_path = Path(temp_dir)
             clone_repo(repo_info.url, temp_dir_path)
@@ -80,20 +65,18 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
                     status_code=400,
                     detail="Invalid build command format. Expected 'uvicorn <module>:app'",
                 )
+
             main_file = match.group(1)
 
             port_match = re.search(r"--port\s+(\d+)", repo_info.buildCommand)
             if not port_match:
-                raise HTTPException(
-                    status_code=400, detail="Port not found in build command"
-                )
+                raise ValueError("Port not found in build command")
             port = port_match.group(1)
 
             root_dir_path = temp_dir_path / repo_info.rootDir
             if not (root_dir_path / f"{main_file}.py").exists():
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"{main_file}.py not found in specified root directory",
+                raise ValueError(
+                    f"{main_file}.py not found in specified root directory"
                 )
 
             short_id = shortuuid.uuid()[:4]
@@ -113,33 +96,125 @@ async def deploy_fast_api(repo_info: RepoInfo, background_tasks: BackgroundTasks
             instance_id = get_instance_id()
             if not instance_id:
                 raise HTTPException(status_code=500, detail="Failed to get EC2 ID.")
+
             sg_id = get_instance_security_group(instance_id)
             if not sg_id:
                 raise HTTPException(status_code=500, detail="Failed to get EC2 sg_id.")
-            try:
-                print(f"正在為安全組 {sg_id} 添加規則，端口為 {host_port}")
-                add_security_group_rule(sg_id, int(host_port))
-            except Exception as e:
-                print(f"調用 add_security_group_rule 時發生錯誤: {e}")
+
+            add_security_group_rule(sg_id, int(host_port))
 
             subdomain = f"{repo_name}-{short_id}".lower()
             target_group_arn = create_target_group(int(host_port), subdomain)
             register_target(target_group_arn, instance_id, int(host_port))
             create_listener_rule(target_group_arn, subdomain)
 
-            full_domain = create_route53_record_for_alb(subdomain)
+            deploy_url = create_route53_record_for_alb(subdomain)
 
-            background_tasks.add_task(delayed_cleanup, service_name, image_tag)
-
-        return DeploymentResponse(
-            data=DeploymentData(
-                success=True,
-                message="Repository deployed successfully",
-                deploy_url=full_domain,
-            )
+        execute_query(
+            connection,
+            """
+            UPDATE deployments 
+            SET status = %s, route53_url = %s
+            WHERE id = %s
+            """,
+            (
+                "pending",
+                deploy_url,
+                deployment_id,
+            ),
         )
 
     except HTTPException as he:
-        return {"data": {"error": f"Error: {he.detail}"}}
+        if connection:
+            execute_query(
+                connection,
+                "UPDATE deployments SET status = %s WHERE id = %s",
+                ("failed", deployment_id),
+            )
+        print(f"Deployment failed: {he.detail}")
+        raise
+    except Exception as e:
+        if connection:
+            execute_query(
+                connection,
+                "UPDATE deployments SET status = %s WHERE id = %s",
+                ("failed", deployment_id),
+            )
+        print(f"Deployment failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    finally:
+        if connection:
+            connection.close()
+
+
+@router.post("/deploy/fast_api")
+async def post_fast_api(
+    request: Request,
+    repo_info: RepoInfo,
+    background_tasks: BackgroundTasks,
+    db=Depends(get_db),
+):
+    try:
+        auth_token = request.headers.get("authToken")
+        payload = jwt.decode(auth_token, JWT_SECRET_KEY, algorithms=["HS256"])
+
+        if not payload:
+            raise HTTPException(status_code=403, detail="Please Login")
+        user_id = payload["id"]
+
+        if not is_public_repo(repo_info.url):
+            raise HTTPException(status_code=400, detail="Repository is not public")
+
+        if repo_info.deploymentType != "fastApi":
+            raise HTTPException(status_code=400, detail="Invalid deployment type")
+
+        user_name, repo_name = extract_github_info(repo_info.url)
+        if not repo_name:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid GitHub repository URL, can't find repo_name.",
+            )
+
+        execute_query(
+            db,
+            """
+            INSERT INTO deployments 
+            (user_id, deployment_type, github_repo_url, github_repo_name, github_repo_owner, status) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (
+                user_id,
+                repo_info.deploymentType,
+                repo_info.url,
+                repo_name,
+                user_name,
+                "validating",
+            ),
+        )
+
+        result = execute_query(db, "SELECT LAST_INSERT_ID()", fetch_method="fetchone")
+
+        deployment_id = result["LAST_INSERT_ID()"]
+        if not deployment_id:
+            raise HTTPException(
+                status_code=500, detail="Failed to create deployment record"
+            )
+
+        background_tasks.add_task(deploy_process, deployment_id, repo_info)
+
+        return {
+            "data": {
+                "success": True,
+                "message": "Deployment process started",
+                "deployment_id": deployment_id,
+            }
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+@router.get("/deploy/status/{deployment_id}")
+async def get_deployment_status_route(deployment_id: int, db=Depends(get_db)):
+    return await get_deployment_status(deployment_id, db)

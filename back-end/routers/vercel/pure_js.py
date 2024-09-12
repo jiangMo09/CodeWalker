@@ -5,8 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from pydantic import BaseModel
 import shortuuid
 import jwt
-import requests
-from datetime import datetime, timedelta
 
 from utils.mysql import get_db, execute_query, get_db_connection
 from utils.load_env import JWT_SECRET_KEY
@@ -27,6 +25,7 @@ from .helper.route53 import (
     create_route53_record_for_s3,
     create_route53_record_for_cloudfront,
 )
+from .helper.get_deployment_status import get_deployment_status
 
 router = APIRouter()
 
@@ -72,8 +71,9 @@ def deploy_process(deployment_id: int, repo_url: RepoInfo):
         with tempfile.TemporaryDirectory() as temp_dir:
             clone_repo(repo_url.url, temp_dir)
             if not validate_repo_contents(temp_dir):
-                raise ValueError(
-                    "Invalid repository contents, repository only contain HTML, JS, CSS and MD files."
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid repository contents, repository should only contain HTML, JS, CSS and MD files.",
                 )
 
             short_id = shortuuid.uuid()[:4]
@@ -91,7 +91,7 @@ def deploy_process(deployment_id: int, repo_url: RepoInfo):
                 )
                 s3_url = f"http://{bucket_name}.s3-website-us-east-1.amazonaws.com"
             else:
-                raise ValueError("Invalid storage type")
+                raise HTTPException(status_code=400, detail="Invalid storage type")
 
         execute_query(
             connection,
@@ -111,6 +111,15 @@ def deploy_process(deployment_id: int, repo_url: RepoInfo):
             ),
         )
 
+    except HTTPException as he:
+        if connection:
+            execute_query(
+                connection,
+                "UPDATE deployments SET status = %s WHERE id = %s",
+                ("failed", deployment_id),
+            )
+        print(f"Deployment failed: {he.detail}")
+        raise
     except Exception as e:
         if connection:
             execute_query(
@@ -119,6 +128,7 @@ def deploy_process(deployment_id: int, repo_url: RepoInfo):
                 ("failed", deployment_id),
             )
         print(f"Deployment failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
     finally:
         if connection:
             connection.close()
@@ -190,89 +200,14 @@ async def post_pure_js(
             }
         }
 
-    except HTTPException as he:
-        return {"data": {"error": f"Error: {he.detail}"}}
+    except HTTPException:
+        raise
     except ClientError as ce:
-        return {"data": {"error": f"AWS Error: {str(ce)}"}}
+        raise HTTPException(status_code=500, detail=f"AWS Error: {str(ce)}")
     except Exception as e:
-        return {"data": {"error": f"Unexpected error: {str(e)}"}}
-
-
-def check_deployment_status(deployment):
-    if deployment["status"] == "pending":
-        url = deployment["route53_url"]
-        if not url:
-            return False
-
-        return True
-
-        #TODO:response.status_code == 200
-        # try:
-        #     response = requests.get(url, timeout=10)
-        #     if response.status_code == 200:
-        #         return True
-        #     else:
-        #         print(
-        #             f"Deployment not ready yet. HTTP status code: {response.status_code}"
-        #         )
-        #         return False
-        # except requests.RequestException as e:
-        #     print(f"Error checking deployment status: {str(e)}")
-        #     return False
-
-    return False
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
 @router.get("/deploy/status/{deployment_id}")
-async def get_deployment_status(deployment_id: int, db=Depends(get_db)):
-    deployment = execute_query(
-        db,
-        """
-        SELECT status, route53_url, s3_url, cloudfront_url, created_at
-        FROM deployments WHERE id = %s
-        """,
-        (deployment_id,),
-        fetch_method="fetchone",
-    )
-
-    if not deployment:
-        raise HTTPException(status_code=404, detail="Deployment not found")
-
-    if deployment["status"] == "pending":
-        print("deployment deployment", deployment)
-        if check_deployment_status(deployment):
-            execute_query(
-                db,
-                "UPDATE deployments SET status = %s WHERE id = %s",
-                ("completed", deployment_id),
-            )
-            deployment["status"] = "completed"
-        else:
-            created_at = deployment["created_at"]
-            if datetime.now() - created_at > timedelta(minutes=10):
-                execute_query(
-                    db,
-                    "UPDATE deployments SET status = %s WHERE id = %s",
-                    ("failed", deployment_id),
-                )
-                deployment["status"] = "failed"
-
-    status_messages = {
-        "validating": "Project validation passed, cloud deployment in progress",
-        "deploying": "Cloud deployment in progress",
-        "pending": "Cloud deployment completed, waiting for URL to take effect",
-        "completed": "URL is effective, please visit",
-        "failed": "Deployment failed or timed out",
-    }
-
-    return {
-        "data": {
-            "status": deployment["status"],
-            "message": status_messages.get(deployment["status"], "Unknown status"),
-            "deploy_url": deployment["route53_url"],
-            "s3_url": deployment["s3_url"],
-            "cloudfront_url": deployment["cloudfront_url"],
-            "created_at": deployment["created_at"].isoformat(),
-            "elapsed_time": (datetime.now() - deployment["created_at"]).total_seconds(),
-        }
-    }
+async def get_deployment_status_route(deployment_id: int, db=Depends(get_db)):
+    return await get_deployment_status(deployment_id, db)
