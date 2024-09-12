@@ -12,7 +12,7 @@ const Options = ({
     const newStorageTypes = storageTypes.includes(type)
       ? storageTypes.filter((t) => t !== type)
       : [...storageTypes, type];
-    onStorageTypeChange(newStorageTypes);
+    onStorageTypeChange(newStorageTypes, type);
   };
 
   return (

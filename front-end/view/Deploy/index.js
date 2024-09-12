@@ -36,6 +36,28 @@ const Deploy = ({ className }) => {
     envVars
   );
 
+  const handleStorageTypeChange = (newStorageTypes, changedType) => {
+    setStorageTypes(newStorageTypes);
+    if (changedType === "redis") {
+      if (newStorageTypes.includes("redis")) {
+        setEnvVars((prevEnvVars) => [
+          { key: "REDIS_HOST", value: "redis" },
+          { key: "REDIS_PORT", value: "6379" },
+          { key: "REDIS_DB", value: "0" },
+          ...prevEnvVars.filter(
+            (env) => !["REDIS_HOST", "REDIS_PORT", "REDIS_DB"].includes(env.key)
+          )
+        ]);
+      } else {
+        setEnvVars((prevEnvVars) =>
+          prevEnvVars.filter(
+            (env) => !["REDIS_HOST", "REDIS_PORT", "REDIS_DB"].includes(env.key)
+          )
+        );
+      }
+    }
+  };
+
   return (
     <div className={className}>
       <Header />
@@ -45,7 +67,7 @@ const Deploy = ({ className }) => {
           deploymentType={deploymentType}
           onDeploymentTypeChange={(e) => setDeploymentType(e.target.value)}
           storageTypes={storageTypes}
-          onStorageTypeChange={setStorageTypes}
+          onStorageTypeChange={handleStorageTypeChange}
         />
         <Rules deploymentType={deploymentType} storageTypes={storageTypes} />
         {deploymentType === "fastApi" && (
