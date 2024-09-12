@@ -36,7 +36,7 @@ class RepoInfo(BaseModel):
     rootDir: str
 
 
-def deploy_process(deployment_id: int, repo_info: RepoInfo):
+async def deploy_process(deployment_id: int, repo_info: RepoInfo):
     connection = None
     try:
         connection = get_db_connection()
