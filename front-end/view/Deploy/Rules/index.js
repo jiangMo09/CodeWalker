@@ -3,13 +3,9 @@ import style from "./style";
 
 const Rules = ({ className, deploymentType, storageTypes }) => {
   const isRedis = storageTypes.includes("redis");
-  const isSqlite = storageTypes.includes("sqlite");
   const link = () => {
     if (isRedis) {
       return "https://github.com/jiangMo09/FastAPIWithRedis";
-    }
-    if (isSqlite) {
-      return "https://github.com/jiangMo09/FastAPIWithSQLite";
     }
     return "https://github.com/jiangMo09/FastAPI";
   };

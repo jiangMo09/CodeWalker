@@ -35,24 +35,14 @@ const Options = ({
           </label>
         )}
         {deploymentType === "fastApi" && (
-          <>
-            <label>
-              <input
-                type="checkbox"
-                checked={storageTypes.includes("sqlite")}
-                onChange={() => handleStorageTypeChange("sqlite")}
-              />
-              SQLite
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={storageTypes.includes("redis")}
-                onChange={() => handleStorageTypeChange("redis")}
-              />
-              Redis
-            </label>
-          </>
+          <label>
+            <input
+              type="checkbox"
+              checked={storageTypes.includes("redis")}
+              onChange={() => handleStorageTypeChange("redis")}
+            />
+            Redis
+          </label>
         )}
       </div>
     </div>
