@@ -15,13 +15,25 @@ const executeTestCase = (userFunction, inputs, expectedOutput) => {
   const endTime = performance.now();
   const endMemory = process.memoryUsage().heapUsed;
 
+  const passed = compareOutputs(result, expectedOutput);
+
   return {
     runTime: endTime - startTime,
     memoryUsed: endMemory - startMemory,
-    passed: JSON.stringify(result) === JSON.stringify(expectedOutput),
+    passed,
     result,
     error
   };
+};
+
+const compareOutputs = (result, expected) => {
+  if (Array.isArray(result) && Array.isArray(expected)) {
+    return JSON.stringify(result) === JSON.stringify(expected);
+  }
+  if (typeof result === "boolean" && typeof expected === "boolean") {
+    return result === expected;
+  }
+  return result === expected;
 };
 
 const createUserFunction = (code, functionName) => {

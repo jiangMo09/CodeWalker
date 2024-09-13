@@ -11,8 +11,8 @@ const runCode = (data) => {
   } = JSON.parse(data);
 
   const userFunction = createUserFunction(typed_code, function_name);
-  const inputs = data_input.split("\n").map(JSON.parse);
-  const expectedOutputs = correct_answer.split("\n").map(JSON.parse);
+  const inputs = parseInput(data_input);
+  const expectedOutputs = parseOutput(correct_answer);
 
   const stats = runTests(
     userFunction,
@@ -31,6 +31,29 @@ const runCode = (data) => {
   });
 
   logSummary(stats);
+};
+
+const parseInput = (input) => {
+  return input.split("\n").map((item) => {
+    try {
+      return JSON.parse(item);
+    } catch (e) {
+      return item;
+    }
+  });
+};
+
+const parseOutput = (output) => {
+  return output.split("\n").map((item) => {
+    if (item === "true" || item === "false") {
+      return item === "true";
+    }
+    try {
+      return JSON.parse(item);
+    } catch (e) {
+      return item;
+    }
+  });
 };
 
 const dataInput = process.env.DATA_INPUT;
