@@ -31,7 +31,7 @@ const TestCase = ({ className, dataInput, testResults }) => {
             <>
               <span className="status passed">Accepted</span>
               <span className="run-time">
-                Runtime: {(parseFloat(testResults?.total_run_time) * 100).toFixed(2)} ms
+                Runtime: {testResults?.total_run_time}
               </span>
               {testResults?.percentile && (
                 <span className="run-time">
