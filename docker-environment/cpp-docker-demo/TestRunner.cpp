@@ -102,10 +102,14 @@ void TestRunner::runTests(const json& dataInput, const json& correctAnswer,
 
         std::any output;
         if (parametersCount == 1) {
-            if (functionName == "isPalindrome") {
+        if (functionName == "isPalindrome") {
                 auto func = reinterpret_cast<bool (*)(int)>(sym);
                 int arg = convertToType<int>(dataInput[i]);
                 output = func(arg);
+            } else if (functionName == "romanToInt") {
+                auto func = reinterpret_cast<int (*)(const char*)>(sym);
+                std::string arg = convertToType<std::string>(dataInput[i]);
+                output = func(arg.c_str());
             } else {
                 auto func = reinterpret_cast<std::any (*)(const char*)>(sym);
                 std::string arg = convertToType<std::string>(dataInput[i]);

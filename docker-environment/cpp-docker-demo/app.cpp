@@ -76,6 +76,8 @@ bool compile(const std::string& filename, const std::string& functionName, int p
         wrapper << "    auto " << functionName << "_wrapper(";
         if (functionName == "isPalindrome") {
             wrapper << "int x) {\n";
+        } else if (functionName == "romanToInt") {
+            wrapper << "const char* s) {\n        string str(s);\n";
         } else {
             wrapper << "const char* s) {\n        string str(s);\n";
         }

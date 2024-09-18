@@ -18,8 +18,12 @@ void Logger::logTestCase(int index, const json& result, bool passed) {
     testCaseResult["test_case"] = index;
     testCaseResult["passed"] = passed;
     testCaseResult["inputs"] = result["input"];
-    testCaseResult["output"] = result["output"];
     testCaseResult["expected"] = result["expected"];
+    if (result["output"].is_number_integer()) {
+        testCaseResult["output"] = result["output"].get<int>();
+    } else {
+        testCaseResult["output"] = result["output"];
+    }
 
     std::stringstream ss;
     ss << std::fixed << std::setprecision(3) << result["runtime"].get<double>() / 1000.0;
