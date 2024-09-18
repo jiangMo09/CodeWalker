@@ -5,6 +5,7 @@
 #include <any>
 #include <vector>
 #include <stdexcept>
+#include <cstring>
 
 class DynamicLibrary {
 public:
@@ -43,6 +44,27 @@ T convertToType(const json& value) {
     }
 }
 
+size_t estimateMemoryUsage(const std::any& value) {
+    if (value.type() == typeid(int)) {
+        return sizeof(int);
+    } else if (value.type() == typeid(bool)) {
+        return sizeof(bool);
+    } else if (value.type() == typeid(std::string)) {
+        return std::any_cast<std::string>(value).capacity() + sizeof(std::string);
+    } else if (value.type() == typeid(std::vector<int>)) {
+        const auto& vec = std::any_cast<std::vector<int>>(value);
+        return vec.capacity() * sizeof(int) + sizeof(std::vector<int>);
+    } else if (value.type() == typeid(std::vector<std::string>)) {
+        const auto& vec = std::any_cast<std::vector<std::string>>(value);
+        size_t total = sizeof(std::vector<std::string>);
+        for (const auto& str : vec) {
+            total += str.capacity() + sizeof(std::string);
+        }
+        return total;
+    }
+    return 0; // 未知類型
+}
+
 void TestRunner::runTests(const json& dataInput, const json& correctAnswer, 
                           const std::string& functionName, int parametersCount) {
     DynamicLibrary lib("./temp_solution.so");
@@ -64,7 +86,6 @@ void TestRunner::runTests(const json& dataInput, const json& correctAnswer,
             result["input"] = dataInput[i];
         }
 
-        // 處理期望值
         json expected = correctAnswer[i / parametersCount];
         if (expected.is_string()) {
             std::string expectedStr = expected.get<std::string>();
@@ -114,16 +135,14 @@ void TestRunner::runTests(const json& dataInput, const json& correctAnswer,
 
         result["runtime"] = duration.count();
 
-        // 比較結果
-        bool passed;
-        if (result["expected"].is_boolean() && result["output"].is_boolean()) {
-            passed = result["output"].get<bool>() == result["expected"].get<bool>();
-        } else {
-            passed = result["output"] == result["expected"];
-        }
+        // 估算內存使用
+        size_t memoryUsage = estimateMemoryUsage(output);
+        result["memory"] = static_cast<double>(memoryUsage) / 1024.0; // 轉換為 KB
+
+        bool passed = (result["output"] == result["expected"]);
 
         allResults.push_back(result);
-        Logger::log("Test case " + std::to_string(i / parametersCount + 1) + ":", result, passed);
+        Logger::logTestCase(i / parametersCount + 1, result, passed);
     }
 
     Logger::logSummary(allResults);

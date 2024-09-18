@@ -9,12 +9,15 @@ using json = nlohmann::json;
 
 class Logger {
 public:
-    static void log(const std::string& testCase, const json& result, bool passed);
+    static void logTestCase(int index, const json& result, bool passed);
     static void logSummary(const std::vector<json>& allResults);
+    static int totalCorrect;
+    static int totalTestcases;
 private:
     static double totalRuntime;
-    static long totalMemory;
+    static double totalMemory;
     static bool allTestsPassed;
+    static json summaryJson;
 };
 
-#endif // LOGGER_H
+#endif

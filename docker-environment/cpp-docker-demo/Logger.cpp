@@ -1,38 +1,55 @@
 #include "Logger.h"
 #include <iostream>
 #include <iomanip>
-#include <random>
+#include <sstream>
 
 double Logger::totalRuntime = 0.0;
-long Logger::totalMemory = 0;
+double Logger::totalMemory = 0.0;
 bool Logger::allTestsPassed = true;
+int Logger::totalCorrect = 0;
+int Logger::totalTestcases = 0;
+json Logger::summaryJson;
 
-void Logger::log(const std::string& testCase, const json& result, bool passed) {
-    std::cout << testCase << (passed ? " Passed. " : " Failed. ");
-    std::cout << "Inputs: " << result["input"] << ". ";
-    std::cout << "Output: " << result["output"] << ". ";
-    std::cout << "Expected: " << result["expected"] << std::endl;
+void Logger::logTestCase(int index, const json& result, bool passed) {
+    totalTestcases++;
+    if (passed) totalCorrect++;
 
-    double runtime = result["runtime"].get<double>() / 1000.0;
-    std::cout << "Run time: " << std::fixed << std::setprecision(3) << runtime << " ms" << std::endl;
+    json testCaseResult;
+    testCaseResult["test_case"] = index;
+    testCaseResult["passed"] = passed;
+    testCaseResult["inputs"] = result["input"];
+    testCaseResult["output"] = result["output"];
+    testCaseResult["expected"] = result["expected"];
 
-    // 生成一个模拟的内存使用量
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.3, 2.0);
-    double memoryUsed = dis(gen);
-    std::cout << "Memory used: " << std::fixed << std::setprecision(3) << memoryUsed << " KB" << std::endl;
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(3) << result["runtime"].get<double>() / 1000.0;
+    testCaseResult["run_time"] = ss.str() + " ms";
 
-    std::cout << std::endl;
+    ss.str("");  // 清空 stringstream
+    ss << std::fixed << std::setprecision(3) << result["memory"].get<double>();
+    testCaseResult["memory"] = ss.str() + " KB";
 
-    totalRuntime += runtime;
-    totalMemory += static_cast<long>(memoryUsed * 1000);  // 转换为字节
+    summaryJson["run_result"].push_back(testCaseResult);
+
+    totalRuntime += result["runtime"].get<double>() / 1000.0;
+    totalMemory += result["memory"].get<double>();
 
     if (!passed) allTestsPassed = false;
 }
 
 void Logger::logSummary(const std::vector<json>& allResults) {
-    std::cout << (allTestsPassed ? "All test cases passed!" : "Some test cases failed.") << std::endl;
-    std::cout << "Total run time: " << std::fixed << std::setprecision(3) << totalRuntime << " ms" << std::endl;
-    std::cout << "Total memory used: " << std::fixed << std::setprecision(3) << totalMemory / 1000.0 << " KB" << std::endl;
+    summaryJson["total_correct"] = totalCorrect;
+    summaryJson["total_testcases"] = totalTestcases;
+    
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(3) << totalRuntime;
+    summaryJson["total_run_time"] = ss.str() + " ms";
+    
+    ss.str("");  // 清空 stringstream
+    ss << std::fixed << std::setprecision(3) << totalMemory / 1024.0;
+    summaryJson["total_run_memory"] = ss.str() + " MB";
+    
+    summaryJson["all_passed"] = allTestsPassed;
+
+    std::cout << summaryJson.dump() << std::endl;
 }
