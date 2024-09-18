@@ -44,6 +44,10 @@ json parseInputString(const std::string& input) {
                 if (line.front() == '[' && line.back() == ']') {
                     // 這是一個數組
                     result.push_back(json::parse(line));
+                } else if (line == "true") {
+                    result.push_back(true);
+                } else if (line == "false") {
+                    result.push_back(false);
                 } else {
                     // 這可能是一個數字或者字符串
                     try {
@@ -76,7 +80,7 @@ bool compile(const std::string& filename, const std::string& functionName, int p
         wrapper << "    auto " << functionName << "_wrapper(";
         if (functionName == "isPalindrome") {
             wrapper << "int x) {\n";
-        } else if (functionName == "romanToInt") {
+        } else if (functionName == "romanToInt" || functionName == "isValid" ) {
             wrapper << "const char* s) {\n        string str(s);\n";
         } else {
             wrapper << "const char* s) {\n        string str(s);\n";

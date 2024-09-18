@@ -110,6 +110,10 @@ void TestRunner::runTests(const json& dataInput, const json& correctAnswer,
                 auto func = reinterpret_cast<int (*)(const char*)>(sym);
                 std::string arg = convertToType<std::string>(dataInput[i]);
                 output = func(arg.c_str());
+            } else if (functionName == "isValid") {
+                auto func = reinterpret_cast<bool (*)(const char*)>(sym);
+                std::string arg = convertToType<std::string>(dataInput[i]);
+                output = func(arg.c_str());
             } else {
                 auto func = reinterpret_cast<std::any (*)(const char*)>(sym);
                 std::string arg = convertToType<std::string>(dataInput[i]);
