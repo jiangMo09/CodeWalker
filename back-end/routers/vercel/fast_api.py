@@ -36,7 +36,9 @@ class RepoInfo(BaseModel):
     rootDir: str
 
 
-async def deploy_process(deployment_id: int, repo_info: RepoInfo):
+async def deploy_process(
+    deployment_id: int, repo_info: RepoInfo, background_tasks: BackgroundTasks
+):
     connection = None
     try:
         connection = get_db_connection()
@@ -124,6 +126,10 @@ async def deploy_process(deployment_id: int, repo_info: RepoInfo):
             ),
         )
 
+        background_tasks.add_task(
+            delayed_cleanup, service_name, image_tag, delay_minutes=60
+        )
+
     except HTTPException as he:
         if connection:
             execute_query(
@@ -200,7 +206,9 @@ async def post_fast_api(
                 status_code=500, detail="Failed to create deployment record"
             )
 
-        background_tasks.add_task(deploy_process, deployment_id, repo_info)
+        background_tasks.add_task(
+            deploy_process, deployment_id, repo_info, background_tasks
+        )
 
         return {
             "data": {
