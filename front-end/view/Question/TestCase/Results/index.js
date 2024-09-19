@@ -20,11 +20,11 @@ const Results = ({ testResults, selectedTestCase }) => {
     <>
       <div className="param-row">
         <span className="param-name">output =</span>
-        <div className="param-value">{currentResult.output}</div>
+        <div className="param-value">{currentResult.output.toString()}</div>
       </div>
       <div className="param-row">
         <span className="param-name">expected =</span>
-        <div className="param-value">{currentResult.expected}</div>
+        <div className="param-value">{currentResult.expected.toString()}</div>
       </div>
     </>
   );
