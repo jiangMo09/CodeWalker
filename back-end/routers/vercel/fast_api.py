@@ -127,7 +127,7 @@ async def deploy_process(
         )
 
         background_tasks.add_task(
-            delayed_cleanup, service_name, image_tag, delay_minutes=60
+            delayed_cleanup, service_name, image_tag, delay_minutes=15
         )
 
     except HTTPException as he:
