@@ -1,10 +1,12 @@
-FROM python:3.11-alpine
+FROM python:3.9-slim
 
 WORKDIR /app
 
-COPY test_runner.py .
-COPY logger.py .
 COPY main.py .
+COPY logger.py .
+COPY test_runner.py .
+
+RUN pip install psutil
 
 ENV PYTHONUNBUFFERED=1
 

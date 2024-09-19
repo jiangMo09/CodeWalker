@@ -1,15 +1,11 @@
 import time
+import psutil
 import json
-import tracemalloc
-from typing import List, Dict, Any, Callable
+from typing import List, Any
 
-
-def execute_test_case(
-    user_function: Callable, inputs: List[Any], expected_output: Any
-) -> Dict[str, Any]:
-    tracemalloc.start()
-    start_time = time.perf_counter_ns()
-    start_memory = tracemalloc.get_traced_memory()[0]
+def execute_test_case(user_function, inputs, expected_output):
+    start_time = time.time() * 1000
+    start_memory = psutil.Process().memory_info().rss
 
     result = None
     error = None
@@ -18,44 +14,38 @@ def execute_test_case(
     except Exception as err:
         error = str(err)
 
-    end_time = time.perf_counter_ns()
-    end_memory = tracemalloc.get_traced_memory()[0]
-    tracemalloc.stop()
+    end_time = time.time() * 1000
+    end_memory = psutil.Process().memory_info().rss
+
+    passed = compare_outputs(result, expected_output)
 
     return {
-        "run_time": (end_time - start_time) / 1e6,  # Convert to milliseconds
+        "run_time": end_time - start_time,
         "memory_used": end_memory - start_memory,
-        "passed": json.dumps(result) == json.dumps(expected_output),
+        "passed": passed,
         "result": result,
         "error": error,
     }
 
 
-def create_user_function(code: str, function_name: str) -> Callable:
-    if "class Solution:" not in code:
-        code = f"class Solution:\n{code}"
+def compare_outputs(result, expected):
+    if isinstance(result, list) and isinstance(expected, list):
+        return json.dumps(result) == json.dumps(expected)
+    if isinstance(result, bool) and isinstance(expected, bool):
+        return result == expected
+    return result == expected
 
-    code = "from typing import List, Dict, Any\n" + code
 
-    namespace = {}
+def create_user_function(code, function_name, List, Any):
+    namespace = {"List": List, "Any": Any}
     exec(code, namespace)
-
-    solution_class = namespace["Solution"]
-    solution_instance = solution_class()
-
-    user_function = getattr(solution_instance, function_name, None)
+    user_function = namespace.get(function_name)
     if not callable(user_function):
-        raise ValueError(f"Function '{function_name}' not found in Solution class")
-
+        raise ValueError(f"Function '{function_name}' not found")
     return user_function
 
 
-def run_tests(
-    user_function: Callable,
-    inputs: List[Any],
-    expected_outputs: List[Any],
-    parameters_count: int,
-) -> Dict[str, Any]:
+def run_tests(user_function, inputs, expected_outputs, parameters_count):
     stats = {
         "all_tests_passed": True,
         "total_run_time": 0,
