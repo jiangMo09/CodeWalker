@@ -6,8 +6,7 @@ import jwt
 from .docker_manager import run_container
 from utils.mysql import get_db, execute_query
 from utils.load_env import JWT_SECRET_KEY
-from utils.redis_client import async_redis_client
-from helpers.leaderboard import update_leaderboard, get_total_leaderboard
+from helpers.leaderboard import update_leaderboard
 from helpers.score import calculate_score
 
 

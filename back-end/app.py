@@ -4,7 +4,7 @@ from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 
 from utils.mysql import get_db, execute_query
-from utils.redis_client import async_redis_client
+from utils.redis_client import get_redis_client, execute_redis_command
 from helpers.leaderboard import get_total_leaderboard
 from routers import api_router
 
@@ -87,11 +87,12 @@ async def get_ranking(db=Depends(get_db)):
                 for row in result
             ]
 
-            leaderboard_key = "leaderboard:total"
-            pipeline = async_redis_client.pipeline()
+            redis = await get_redis_client()
+            leaderboard_key = "{leaderboard}:total"
+            pipeline = redis.pipeline()
             for entry in leaderboard:
                 pipeline.zadd(leaderboard_key, {entry["username"]: entry["score"]})
-            await pipeline.execute()
+            await execute_redis_command(pipeline.execute)
 
         formatted_leaderboard = [
             LeaderboardEntry(username=entry["username"], score=entry["score"])
@@ -100,6 +101,7 @@ async def get_ranking(db=Depends(get_db)):
 
         return {"data": formatted_leaderboard}
     except Exception as e:
+        print(f"Error in get_ranking: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
