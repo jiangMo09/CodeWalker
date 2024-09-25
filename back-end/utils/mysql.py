@@ -9,8 +9,9 @@ dbconfig = {
 }
 
 pool = mysql.connector.pooling.MySQLConnectionPool(
-    pool_name="mypool", pool_size=15, **dbconfig
+    pool_name="mypool", pool_size=80, **dbconfig
 )
+# pool_size 15 from https://repost.aws/knowledge-center/rds-mysql-max-connections
 
 
 def get_db_connection():
