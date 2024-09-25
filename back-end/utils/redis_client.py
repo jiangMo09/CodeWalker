@@ -26,7 +26,7 @@ def get_redis_config() -> tuple[str, Dict[str, Any]]:
             "ssl_cert_reqs": None,
             "socket_timeout": 5,
             "socket_connect_timeout": 5,
-            "health_check_interval": 30,
+            "health_check_interval": 10,
             "retry_on_timeout": True,
             "max_connections": 10000,
         }
@@ -57,7 +57,9 @@ def initialize_redis_client() -> redis.Redis:
 
 async_redis_client = initialize_redis_client()
 
-
+# https://github.com/redis/redis-py/issues/2773#issuecomment-1687671504
+# when request is high, error "Connection closed by server." may happens.
+# solved by setting retry & reinitializing client. 
 async def execute_redis_command(command, *args, **kwargs):
     max_retries = 3
     for attempt in range(max_retries):
