@@ -4,7 +4,7 @@ from typing import List, Dict
 import jwt
 
 from .docker_manager import run_container
-from utils.mysql import get_db, execute_query
+from utils.mysql import get_db, execute_query, get_db_connection
 from utils.load_env import JWT_SECRET_KEY
 from helpers.leaderboard import update_leaderboard
 from helpers.score import calculate_score
@@ -118,14 +118,12 @@ async def execute_code(data):
 
 
 @router.post("/question_code")
-async def post_question_code(
-    request: Request, typed_code: CodeTyped, db=Depends(get_db)
-):
+async def post_question_code(request: Request, typed_code: CodeTyped):
     auth_token = request.headers.get("authToken")
 
     payload = jwt.decode(auth_token, JWT_SECRET_KEY, algorithms=["HS256"])
     if not payload:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Please Login",
         )
@@ -133,112 +131,135 @@ async def post_question_code(
     username = payload["username"]
 
     try:
-        question_query = (
-            "SELECT id, function_name, parameters_count FROM questions WHERE id = %s"
-        )
-        question_result = execute_query(
-            db, question_query, (typed_code.question_id,), fetch_method="fetchone"
-        )
-        if not question_result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Question not found"
+        with get_db_connection() as conn:
+            question_result, test_cases_result = get_question_and_test_cases(
+                conn, typed_code
             )
 
-        submit_status = "submit" if typed_code.submit else "run"
-        test_cases_query = f"SELECT data_input_{submit_status}, correct_answer_{submit_status} FROM questions_test_cases WHERE question_id = %s"
-        test_cases_result = execute_query(
-            db, test_cases_query, (typed_code.question_id,), fetch_method="fetchone"
+        docker_input = prepare_docker_input(
+            question_result, test_cases_result, typed_code
         )
 
-        if not test_cases_result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Test cases not found"
-            )
-
-        docker_input = {
-            "data_input": test_cases_result[f"data_input_{submit_status}"],
-            "correct_answer": test_cases_result[f"correct_answer_{submit_status}"],
-            "lang": typed_code.lang,
-            "question_id": str(typed_code.question_id),
-            "function_name": question_result["function_name"],
-            "typed_code": typed_code.typed_code,
-            "parameters_count": question_result["parameters_count"],
-        }
         result = await execute_code(docker_input)
+
         if (
             typed_code.submit
             and result["container_run_success"]
             and result["all_passed"]
         ):
-            result["run_result"] = result["run_result"][
-                : 2 if typed_code.question_id == 4 else 3
-            ]
-
-            check_query = """
-            SELECT id FROM submissions 
-            WHERE user_id = %s AND question_id = %s
-            """
-            existing_submission = execute_query(
-                db,
-                check_query,
-                (user_id, typed_code.question_id),
-                fetch_method="fetchone",
-            )
-
-            lang_query = "SELECT id FROM languages WHERE name = %s"
-            lang_result = execute_query(
-                db, lang_query, (typed_code.lang,), fetch_method="fetchone"
-            )
-            language_id = lang_result["id"] if lang_result else None
-
-            memory = float(result["total_run_memory"].split()[0])
-            execution_time = float(result["total_run_time"].split()[0])
-            score = calculate_score(result)
-
-            if existing_submission:
-                update_query = """
-                UPDATE submissions 
-                SET language_id = %s, memory = %s, execution_time = %s, score = %s
-                WHERE id = %s
-                """
-                execute_query(
-                    db,
-                    update_query,
-                    (
-                        language_id,
-                        memory,
-                        execution_time,
-                        score,
-                        existing_submission["id"],
-                    ),
-                )
-            else:
-                insert_query = """
-                INSERT INTO submissions 
-                (user_id, question_id, language_id, memory, execution_time, score)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """
-                execute_query(
-                    db,
-                    insert_query,
-                    (
-                        user_id,
-                        typed_code.question_id,
-                        language_id,
-                        memory,
-                        execution_time,
-                        score,
-                    ),
-                )
+            with get_db_connection() as conn:
+                update_submission_data(conn, user_id, typed_code, result)
 
             percentile = await update_leaderboard(
-                typed_code.question_id, execution_time, username, score
+                typed_code.question_id,
+                float(result["total_run_time"].split()[0]),
+                username,
+                calculate_score(result),
             )
-            result["percentile"] = percentile
+            if percentile is not None:
+                result["percentile"] = percentile
 
         return {"data": result}
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+def get_question_and_test_cases(conn, typed_code):
+    question_query = (
+        "SELECT id, function_name, parameters_count FROM questions WHERE id = %s"
+    )
+    question_result = execute_query(
+        conn, question_query, (typed_code.question_id,), fetch_method="fetchone"
+    )
+    if not question_result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Question not found"
+        )
+
+    submit_status = "submit" if typed_code.submit else "run"
+    test_cases_query = f"SELECT data_input_{submit_status}, correct_answer_{submit_status} FROM questions_test_cases WHERE question_id = %s"
+    test_cases_result = execute_query(
+        conn, test_cases_query, (typed_code.question_id,), fetch_method="fetchone"
+    )
+
+    if not test_cases_result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Test cases not found"
+        )
+
+    return question_result, test_cases_result
+
+
+def prepare_docker_input(question_result, test_cases_result, typed_code):
+    submit_status = "submit" if typed_code.submit else "run"
+    return {
+        "data_input": test_cases_result[f"data_input_{submit_status}"],
+        "correct_answer": test_cases_result[f"correct_answer_{submit_status}"],
+        "lang": typed_code.lang,
+        "question_id": str(typed_code.question_id),
+        "function_name": question_result["function_name"],
+        "typed_code": typed_code.typed_code,
+        "parameters_count": question_result["parameters_count"],
+    }
+
+
+def update_submission_data(conn, user_id, typed_code, result):
+    check_query = """
+    SELECT id FROM submissions 
+    WHERE user_id = %s AND question_id = %s
+    """
+    existing_submission = execute_query(
+        conn,
+        check_query,
+        (user_id, typed_code.question_id),
+        fetch_method="fetchone",
+    )
+
+    lang_query = "SELECT id FROM languages WHERE name = %s"
+    lang_result = execute_query(
+        conn, lang_query, (typed_code.lang,), fetch_method="fetchone"
+    )
+    language_id = lang_result["id"] if lang_result else None
+
+    memory = float(result["total_run_memory"].split()[0])
+    execution_time = float(result["total_run_time"].split()[0])
+    score = calculate_score(result)
+
+    if existing_submission:
+        update_query = """
+        UPDATE submissions 
+        SET language_id = %s, memory = %s, execution_time = %s, score = %s
+        WHERE id = %s
+        """
+        execute_query(
+            conn,
+            update_query,
+            (
+                language_id,
+                memory,
+                execution_time,
+                score,
+                existing_submission["id"],
+            ),
+        )
+    else:
+        insert_query = """
+        INSERT INTO submissions 
+        (user_id, question_id, language_id, memory, execution_time, score)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        execute_query(
+            conn,
+            insert_query,
+            (
+                user_id,
+                typed_code.question_id,
+                language_id,
+                memory,
+                execution_time,
+                score,
+            ),
         )
