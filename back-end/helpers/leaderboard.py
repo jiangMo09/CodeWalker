@@ -1,3 +1,4 @@
+import asyncio
 from utils.redis_client import execute_redis_command, get_redis_client
 
 
@@ -8,44 +9,49 @@ async def update_leaderboard(
     question_leaderboard_key = f"{{leaderboard}}:question:{question_id}"
     total_leaderboard_key = "{leaderboard}:total"
 
-    try:
-        pipe = redis.pipeline()
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            pipe = redis.pipeline()
+            pipe.zscore(question_leaderboard_key, username)
+            pipe.zscore(total_leaderboard_key, username)
+            result = await execute_redis_command(pipe.execute)
 
-        pipe.zscore(question_leaderboard_key, username)
-        pipe.zscore(total_leaderboard_key, username)
-        old_execution_time, current_total_score = await execute_redis_command(
-            pipe.execute
-        )
+            if len(result) != 2:
+                raise ValueError(f"Expected 2 values, got {len(result)}")
 
-        old_execution_time = (
-            float(old_execution_time) if old_execution_time else float("inf")
-        )
-        current_total_score = float(current_total_score) if current_total_score else 0
+            old_execution_time, current_total_score = result
 
-        old_score = max(0, 20 - old_execution_time)
-        new_total_score = round(current_total_score - old_score + score, 2)
+            old_execution_time = float(old_execution_time) if old_execution_time else float("inf")
+            current_total_score = float(current_total_score) if current_total_score else 0
 
-        pipe = redis.pipeline()
-        pipe.zadd(question_leaderboard_key, {username: execution_time})
-        pipe.zadd(total_leaderboard_key, {username: new_total_score})
-        await execute_redis_command(pipe.execute)
+            old_score = max(0, 20 - old_execution_time)
+            new_total_score = round(current_total_score - old_score + score, 2)
 
-        total = await execute_redis_command(redis.zcard, question_leaderboard_key)
-        slower_count = await execute_redis_command(
-            redis.zcount, question_leaderboard_key, execution_time, "+inf"
-        )
+            pipe = redis.pipeline()
+            pipe.zadd(question_leaderboard_key, {username: execution_time})
+            pipe.zadd(total_leaderboard_key, {username: new_total_score})
+            await execute_redis_command(pipe.execute)
 
-        if total > 1:
-            percentile = min(99, max(1, (slower_count * 100) // (total - 1)))
-        else:
-            percentile = 99
+            total = await execute_redis_command(redis.zcard, question_leaderboard_key)
+            slower_count = await execute_redis_command(
+                redis.zcount, question_leaderboard_key, execution_time, "+inf"
+            )
 
-        return percentile
+            if total > 1:
+                percentile = min(99, max(1, (slower_count * 100) // (total - 1)))
+            else:
+                percentile = 99
 
-    except Exception as e:
-        print(f"Error updating leaderboard: {str(e)}")
-        raise
+            return percentile
 
+        except (ValueError, Exception) as e:
+            if attempt == max_retries - 1:
+                print(f"Error updating leaderboard: {str(e)}")
+                raise
+            await asyncio.sleep(0.1 * (attempt + 1))
+
+    raise Exception("Failed to update leaderboard after multiple attempts")
 
 async def get_total_leaderboard(limit: int = 10):
     redis = await get_redis_client()
