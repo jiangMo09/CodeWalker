@@ -19,7 +19,7 @@
 - User submissions are processed by a FastAPI backend
 - Answers are evaluated in language-specific Docker containers
 - Docker images are pulled from ECR via systemd when the FastAPI backend starts
-- Correct submissions are recorded in both Elasticache (Redis) and RDS
+- Correct submissions are recorded in both Elasticache (Redis) and RDS(MySQL)
   - Elasticache uses Redis's sorted set feature for real-time rankings
   - RDS ensures long-term data persistence of ranking scores
 
@@ -48,12 +48,11 @@ HTTPS Deployment Flow:
 
 #### FastAPI Deployment
 - Dynamically generates Dockerfile and docker-compose.yml based on user-provided env file
-- Option to include Redis
+- Option to include a Redis service as a separate container, integrated with the project via Docker networking
 - Automatically cleans up Docker resources after 15 minutes of successful container build
 - Random Docker host_id allocation to avoid port conflicts on EC2 instances
   - This allows multiple projects to coexist on the same EC2 instance
   - Ensures efficient resource utilization and scalability
-- If Redis is included, it's bound to the FastAPI container using Docker network
 
 FastAPI Deployment Flow:
 ![FastAPI Deployment](docs/Vercel-FastAPI.jpg)
