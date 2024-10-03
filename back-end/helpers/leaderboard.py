@@ -13,23 +13,27 @@ async def update_leaderboard(
     for attempt in range(max_retries):
         try:
             pipe = redis.pipeline()
-            pipe.zscore(question_leaderboard_key, username)
-            pipe.zscore(total_leaderboard_key, username)
+
+            # get other question scores
+            for i in range(1, 6):
+                if i != question_id:
+                    pipe.zscore(f"{{leaderboard}}:question:{i}", username)
+
             result = await execute_redis_command(pipe.execute)
 
-            if len(result) != 2:
-                raise ValueError(f"Expected 2 values, got {len(result)}")
+            # new total scores
+            answered_questions = sum(1 for score in result if score is not None)
+            max_score_per_question = 20
+            total_max_score = answered_questions * max_score_per_question
 
-            old_execution_time, current_total_score = result
+            other_scores_sum = sum(float(score) if score else 0 for score in result)
 
-            old_execution_time = float(old_execution_time) if old_execution_time else float("inf")
-            current_total_score = float(current_total_score) if current_total_score else 0
-
-            old_score = max(0, 20 - old_execution_time)
-            new_total_score = round(current_total_score - old_score + score, 2)
+            new_total_score = round(total_max_score - other_scores_sum + score, 2)
 
             pipe = redis.pipeline()
+            # update current score
             pipe.zadd(question_leaderboard_key, {username: execution_time})
+            # update total scores
             pipe.zadd(total_leaderboard_key, {username: new_total_score})
             await execute_redis_command(pipe.execute)
 
