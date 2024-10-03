@@ -1,0 +1,20 @@
+{
+    "docker_input": {
+        "data_input": "[2,7,11,15]\n9\n[3,2,4]\n6\n[3,3]\n6\n[2,4,5,7]\n9\n[1,3,4,2]\n6\n[0,4,3,0]\n0",
+        "correct_answer": "[0,1]\n[1,2]\n[0,1]\n[1,2]\n[2,3]\n[0,3]",
+        "lang": "javascript",
+        "question_id": "1",
+        "function_name": "twoSum",
+        "typed_code": "/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function (nums, target) {\n    const map = new Map();\n\n    for (let i = 0; i < nums.length; i++) {\n        const complement = target - nums[i];\n        if (map.has(complement)) {\n            return [map.get(complement), i];\n        }\n        map.set(nums[i], i);\n    }\n\n    return [];\n};",
+        "parameters_count": 2
+    },
+    "redis_key": "1_1_submit_8f8a",
+    "user_id": 1,
+    "username": "Leona",
+    "typed_code": {
+        "lang": "javascript",
+        "question_id": 1,
+        "submit": true,
+        "typed_code": "/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function (nums, target) {\n    const map = new Map();\n\n    for (let i = 0; i < nums.length; i++) {\n        const complement = target - nums[i];\n        if (map.has(complement)) {\n            return [map.get(complement), i];\n        }\n        map.set(nums[i], i);\n    }\n\n    return [];\n};"
+    }
+}

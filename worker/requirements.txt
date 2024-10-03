@@ -4,6 +4,6 @@ docker==7.1.0
 idna==3.10
 mysql-connector-python==9.0.0
 python-dotenv==1.0.1
-redis==5.1.0
+redis==5.0.8
 requests==2.32.3
 urllib3==2.2.3
