@@ -8,16 +8,16 @@ from fastapi import (
     BackgroundTasks,
     Header,
 )
-
 from pydantic import BaseModel
 from typing import List, Dict
 import jwt
 import uuid
 import json
+import boto3
 
 from .docker_manager import run_container
 from utils.mysql import get_db, execute_query, get_db_connection
-from utils.load_env import JWT_SECRET_KEY
+from utils.load_env import JWT_SECRET_KEY, ENVIRONMENT, SQS_URL, AWS_BUCKET_REGION
 from utils.redis_client import get_redis_client, execute_redis_command
 from helpers.leaderboard import update_leaderboard
 from helpers.score import calculate_score
@@ -182,6 +182,9 @@ async def execute_code_background(data, redis_key, user_id, username, typed_code
     await store_result_in_redis(redis_key, result)
 
 
+sqs = boto3.client("sqs", region_name=AWS_BUCKET_REGION)
+
+
 @router.post("/question_code")
 async def post_question_code(
     request: Request, typed_code: CodeTyped, background_tasks: BackgroundTasks
@@ -212,14 +215,30 @@ async def post_question_code(
         submit_status = "submit" if typed_code.submit else "run"
         redis_key = f"{user_id}_{typed_code.question_id}_{submit_status}_{task_id}"
 
-        background_tasks.add_task(
-            execute_code_background,
-            docker_input,
-            redis_key,
-            user_id,
-            username,
-            typed_code,
-        )
+        if ENVIRONMENT == "production":
+            message_body = json.dumps(
+                {
+                    "docker_input": docker_input,
+                    "redis_key": redis_key,
+                    "user_id": user_id,
+                    "username": username,
+                    "typed_code": typed_code.dict(),
+                }
+            )
+
+            sqs.send_message(QueueUrl=SQS_URL, MessageBody=message_body)
+
+            print(f"Task sent to SQS: {redis_key}")
+        else:
+            background_tasks.add_task(
+                execute_code_background,
+                docker_input,
+                redis_key,
+                user_id,
+                username,
+                typed_code,
+            )
+            print(f"Task executed locally: {redis_key}")
 
         return {"data": {"question_result_id": redis_key}}
 
