@@ -1,11 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    Query,
+    Request,
+    BackgroundTasks,
+    Header,
+)
+
 from pydantic import BaseModel
 from typing import List, Dict
 import jwt
+import uuid
+import json
 
 from .docker_manager import run_container
 from utils.mysql import get_db, execute_query, get_db_connection
 from utils.load_env import JWT_SECRET_KEY
+from utils.redis_client import get_redis_client, execute_redis_command
 from helpers.leaderboard import update_leaderboard
 from helpers.score import calculate_score
 
@@ -99,9 +112,56 @@ async def get_language_list(db=Depends(get_db)):
         )
 
 
-async def execute_code(data):
-    language = data.get("lang", "")
+EXPIRATION_TIME = 300
 
+
+async def execute_code(image_name, data):
+    return await run_container(image_name, data)
+
+
+async def store_result_in_redis(redis_key, result):
+    redis_client = await get_redis_client()
+    await execute_redis_command(
+        redis_client.set, redis_key, json.dumps(result), ex=EXPIRATION_TIME
+    )
+
+
+async def update_submission_if_needed(conn, user_id, typed_code, result):
+    if not (
+        typed_code.submit and result["container_run_success"] and result["all_passed"]
+    ):
+        return
+
+    update_submission_data(conn, user_id, typed_code, result)
+
+
+async def update_leaderboard_if_needed(typed_code, result, username):
+    if not (
+        typed_code.submit and result["container_run_success"] and result["all_passed"]
+    ):
+        return
+
+    percentile = await update_leaderboard(
+        typed_code.question_id,
+        float(result["total_run_time"].split()[0]),
+        username,
+        calculate_score(result),
+    )
+    if percentile is not None:
+        result["percentile"] = percentile
+
+
+async def execute_code_background(data, redis_key, user_id, username, typed_code):
+    redis_client = await get_redis_client()
+
+    await execute_redis_command(
+        redis_client.set,
+        redis_key,
+        json.dumps({"status": "running"}),
+        ex=EXPIRATION_TIME,
+    )
+
+    language = data.get("lang", "")
     language_to_image = {
         "javascript": "js-docker",
         "python3": "python-docker",
@@ -113,12 +173,19 @@ async def execute_code(data):
         raise ValueError(f"不支援的語言: {language}")
 
     image_name = language_to_image[language]
-    result = await run_container(image_name, data)
-    return result
+    result = await execute_code(image_name, data)
+
+    with get_db_connection() as conn:
+        await update_submission_if_needed(conn, user_id, typed_code, result)
+
+    await update_leaderboard_if_needed(typed_code, result, username)
+    await store_result_in_redis(redis_key, result)
 
 
 @router.post("/question_code")
-async def post_question_code(request: Request, typed_code: CodeTyped):
+async def post_question_code(
+    request: Request, typed_code: CodeTyped, background_tasks: BackgroundTasks
+):
     auth_token = request.headers.get("authToken")
 
     payload = jwt.decode(auth_token, JWT_SECRET_KEY, algorithms=["HS256"])
@@ -140,26 +207,21 @@ async def post_question_code(request: Request, typed_code: CodeTyped):
             question_result, test_cases_result, typed_code
         )
 
-        result = await execute_code(docker_input)
+        task_id = str(uuid.uuid4())[:4]
 
-        if (
-            typed_code.submit
-            and result["container_run_success"]
-            and result["all_passed"]
-        ):
-            with get_db_connection() as conn:
-                update_submission_data(conn, user_id, typed_code, result)
+        submit_status = "submit" if typed_code.submit else "run"
+        redis_key = f"{user_id}_{typed_code.question_id}_{submit_status}_{task_id}"
 
-            percentile = await update_leaderboard(
-                typed_code.question_id,
-                float(result["total_run_time"].split()[0]),
-                username,
-                calculate_score(result),
-            )
-            if percentile is not None:
-                result["percentile"] = percentile
+        background_tasks.add_task(
+            execute_code_background,
+            docker_input,
+            redis_key,
+            user_id,
+            username,
+            typed_code,
+        )
 
-        return {"data": result}
+        return {"data": {"question_result_id": redis_key}}
 
     except Exception as e:
         raise HTTPException(
@@ -263,3 +325,48 @@ def update_submission_data(conn, user_id, typed_code, result):
                 score,
             ),
         )
+
+
+@router.get("/execution_result/{redis_key}")
+async def get_result(redis_key: str, authToken: str = Header(None)):
+    if not authToken:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token is missing",
+        )
+
+    try:
+        payload = jwt.decode(authToken, JWT_SECRET_KEY, algorithms=["HS256"])
+        auth_user_id = payload["id"]
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token",
+        )
+
+    redis_key_parts = redis_key.split("_")
+    if len(redis_key_parts) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid redis key format"
+        )
+
+    redis_user_id = redis_key_parts[0]
+
+    if str(auth_user_id) != redis_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to access this resource",
+        )
+
+    redis_client = await get_redis_client()
+    result = await execute_redis_command(redis_client.get, redis_key)
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="Result not found or expired")
+
+    result_data = json.loads(result)
+
+    if result_data.get("status") == "running":
+        return {"data": {"status": "running", "message": "Code is still executing"}}
+
+    return {"data": result_data}
