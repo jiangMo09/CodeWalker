@@ -1,6 +1,9 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { postTypedCode } from "../../../services/api/Question";
+import {
+  postTypedCode,
+  getQuestionResult
+} from "../../../services/api/Question";
 import { useGlobalContext } from "../../../providers/GlobalProvider";
 import User from "../../User";
 import style from "./style";
@@ -32,7 +35,29 @@ const Header = ({
         selectedLanguage,
         userCode
       });
-      setTestResults(response);
+
+      const question_result_id = response.question_result_id;
+      const pollResult = async () => {
+        try {
+          const result = await getQuestionResult(question_result_id);
+
+          if (result?.status === "running") {
+            setTimeout(pollResult, 1000);
+          } else {
+            setTestResults(result);
+            setIsDisabled(false);
+          }
+        } catch (error) {
+          console.error("Error getting question result:", error);
+          setTestResults({
+            container_run_success: false,
+            error: "An error occurred while fetching the results."
+          });
+          setIsDisabled(false);
+        }
+      };
+
+      pollResult();
     } catch (error) {
       console.error("Error posting code:", error);
       setTestResults({

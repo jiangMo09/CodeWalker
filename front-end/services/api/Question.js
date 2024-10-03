@@ -38,3 +38,18 @@ export const postTypedCode = ({
     })
   });
 };
+
+export const getQuestionResult = (question_result_id) => {
+  const authToken = getAuthToken();
+
+  if (!authToken) {
+    return Promise.reject("No valid auth token found");
+  }
+
+  return fetchData(`/execution_result/${question_result_id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      authToken: authToken
+    }
+  });
+};
